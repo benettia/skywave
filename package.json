@@ -1,0 +1,14 @@
+{
+  "name": "skywave",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test 'test/*.test.js'",
+    "smoke": "playwright test smoke",
+    "check": "./check.sh"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}

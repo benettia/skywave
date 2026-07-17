@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# skywave dev
+node_modules/
+test-results/
+playwright-report/
