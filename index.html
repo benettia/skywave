@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SKYWAVE SW-1</title>
+<style>
+:root{--amber:#ffb445;--dim:#6e6558;--panel:#151316;--line:#2a2622}
+*{box-sizing:border-box;margin:0;user-select:none}
+body{background:#070607;color:var(--dim);font:13px/1.5 "Helvetica Neue",Arial,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px 8px}
+#panel{width:880px;max-width:100%;background:linear-gradient(#18161a,#121014);
+  border:1px solid var(--line);border-radius:10px;padding:22px 26px;
+  box-shadow:0 24px 60px #000,inset 0 1px 0 #ffffff12}
+#top{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:12px}
+#brand{color:#b8b0a4;font-size:17px;letter-spacing:5px;font-weight:700}
+#brand small{color:var(--dim);font-size:9px;letter-spacing:2px;font-weight:400;margin-left:10px}
+#clock{margin-left:auto;font-family:ui-monospace,Consolas,monospace;color:var(--amber);
+  text-shadow:0 0 9px #ffb44580;font-size:15px;letter-spacing:2px}
+#main{display:grid;grid-template-columns:190px 1fr 210px;gap:20px;align-items:center;padding:22px 0 8px}
+#lcdbox{background:#0a0806;border:1px solid #000;border-radius:5px;padding:10px 16px;
+  box-shadow:inset 0 4px 14px #000;grid-column:2;text-align:center}
+#freq{font-family:ui-monospace,Consolas,monospace;font-size:42px;letter-spacing:4px;
+  color:var(--amber);text-shadow:0 0 14px #ffb445a0,0 0 3px #ffb445}
+#freq small{font-size:14px;letter-spacing:1px;color:#c98d3a;margin-left:6px}
+#meter{width:180px;height:96px;background:#0a0806;border:1px solid #000;border-radius:5px;
+  box-shadow:inset 0 4px 14px #000;position:relative;overflow:hidden}
+#meter .arc{position:absolute;left:20px;right:20px;top:16px;height:120px;border:2px solid #3a3428;
+  border-radius:50%;border-bottom-color:transparent;border-left-color:transparent;border-right-color:transparent}
+#needle{position:absolute;left:50%;bottom:-8px;width:2px;height:78px;background:var(--amber);
+  box-shadow:0 0 8px #ffb445;transform-origin:50% 100%;transition:none}
+#meter label{position:absolute;bottom:4px;width:100%;text-align:center;font-size:9px;letter-spacing:3px}
+.kwrap{text-align:center}
+.kwrap label{display:block;font-size:9px;letter-spacing:3px;margin-top:8px}
+.knob{border-radius:50%;margin:0 auto;cursor:grab;position:relative;touch-action:none;
+  background:radial-gradient(circle at 38% 32%,#2e2b33,#141216 70%);
+  border:1px solid #000;box-shadow:0 5px 14px #000,inset 0 1px 0 #ffffff20}
+.knob:active{cursor:grabbing}
+.knob::before{content:"";position:absolute;left:50%;top:7%;width:3px;height:26%;margin-left:-1.5px;
+  background:var(--amber);border-radius:2px;box-shadow:0 0 6px #ffb44590;
+  transform:rotate(var(--a,0deg));transform-origin:50% 165.4%}
+#dial{width:170px;height:170px}
+.small{width:62px;height:62px}
+#side{display:flex;flex-direction:column;gap:14px;align-items:center}
+#siderow{display:flex;gap:22px}
+.sw{cursor:pointer;text-align:center}
+.sw .well{width:34px;height:58px;margin:0 auto;background:#0a0806;border-radius:4px;border:1px solid #000;
+  box-shadow:inset 0 3px 8px #000;position:relative}
+.sw .lever{position:absolute;left:4px;right:4px;top:31px;height:22px;border-radius:3px;
+  background:linear-gradient(#3c3841,#1c1a20);box-shadow:0 2px 4px #000;transition:top .12s}
+.sw.on .lever{top:5px;background:linear-gradient(#4a4436,#2a2620)}
+.sw .led{display:inline-block;width:7px;height:7px;border-radius:50%;background:#241d10;margin-right:5px;vertical-align:1px}
+.sw.on .led{background:var(--amber);box-shadow:0 0 8px #ffb445}
+.sw label{display:block;font-size:9px;letter-spacing:3px;margin-top:7px;cursor:pointer}
+#hint{min-height:20px;text-align:center;font-size:11px;letter-spacing:1px;color:#8a7d5f;padding:6px 0}
+#logbar{display:flex;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+#note{flex:1;background:#0a0806;border:1px solid #000;border-radius:4px;color:#cfc6b8;
+  padding:8px 12px;font:12px ui-monospace,Consolas,monospace;box-shadow:inset 0 2px 8px #000;outline:none}
+button{background:linear-gradient(#2c2930,#1a181d);color:#b8b0a4;border:1px solid #000;
+  border-radius:4px;padding:8px 18px;font:11px/1 inherit;letter-spacing:3px;cursor:pointer;
+  box-shadow:0 3px 8px #0009,inset 0 1px 0 #ffffff18}
+button:active{transform:translateY(1px)}
+#logwrap{max-height:170px;overflow-y:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font:11px ui-monospace,Consolas,monospace;color:#a99}
+td{padding:4px 10px;border-bottom:1px solid #1e1b1e;color:#9a8f7d}
+td:first-child{color:var(--amber)}
+#foot{margin-top:14px;font-size:10px;letter-spacing:1px;text-align:center;color:#4d463d}
+#tests{width:880px;max-width:100%;background:#0a0f0a;border:1px solid #1e2a1e;color:#9c9;
+  font:12px ui-monospace,Consolas,monospace;padding:14px;margin-bottom:16px;white-space:pre-wrap}
+</style></head><body>
+<pre id="tests" hidden></pre>
+<div id="panel">
+  <div id="top"><span id="brand">SKYWAVE<small>SW-1 COMMUNICATIONS RECEIVER · 3–30 MC</small></span><span id="clock">····z</span></div>
+  <div id="main">
+    <div id="meter"><div class="arc"></div><div id="needle"></div><label>SIGNAL</label></div>
+    <div id="lcdbox"><span id="freq">7.1000<small>MHz</small></span></div>
+    <div id="side">
+      <div id="siderow">
+        <div class="sw" id="pwr"><div class="well"><div class="lever"></div></div><label><span class="led"></span>POWER</label></div>
+        <div class="sw" id="bfo"><div class="well"><div class="lever"></div></div><label><span class="led"></span>BFO</label></div>
+      </div>
+      <div id="siderow">
+        <div class="kwrap"><div class="knob small" id="fine"></div><label>FINE</label></div>
+        <div class="kwrap"><div class="knob small" id="vol"></div><label>AF GAIN</label></div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;padding:4px 0 18px"><div class="kwrap"><div class="knob" id="dial"></div><label>TUNING</label></div></div>
+  <div id="hint"></div>
+  <div id="logbar"><input id="note" placeholder="note — what do you hear?" maxlength="80"><button id="logbtn">LOG</button><button id="expbtn">EXPORT</button></div>
+  <div id="logwrap"><table id="logtbl"></table></div>
+  <div id="foot"></div>
+</div>
+<script>
+'use strict';
+/* ================= deterministic core (tested) ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const MORSE={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',
+  K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',
+  V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',
+  4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.'};
+const MORSE_R=Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
+function morseEncode(txt){return txt.trim().toUpperCase().split(/\s+/)
+  .map(w=>[...w].map(c=>MORSE[c]||'').filter(Boolean).join(' ')).join(' / ')}
+function morseDecode(pat){return pat.split(' / ')
+  .map(w=>w.split(' ').map(s=>MORSE_R[s]||'').join('')).join(' ')}
+function morseTiming(pat){ // -> [[onUnits,offUnits],...]  dit=1 dah=3 ltr=3 word=7
+  const out=[];for(let i=0;i<pat.length;i++){const c=pat[i];if(c!=='.'&&c!=='-')continue;
+    const n=pat[i+1];let off=1;if(n===undefined)off=7;else if(n===' ')off=pat[i+2]==='/'?7:3;
+    out.push([c==='.'?1:3,off]);}return out}
+function schedOn(sc,d){if(sc.t==='a')return true;
+  if(sc.t==='h'){const m=d.getUTCMinutes();return m>=sc.m0&&m<sc.m1}
+  const h=d.getUTCHours();return sc.h0<=sc.h1?(h>=sc.h0&&h<sc.h1):(h>=sc.h0||h<sc.h1)}
+const WORDS=['MAGPIE','ORION','VEGA','ALTAIR','SABLE','LYRA','QSL QRZ','QRT 73','GRID JN45','ECHO 9'];
+function makeBand(seed){const r=mulberry32(seed),sts=[];
+  const plan='n'.repeat(7)+'m'.repeat(8)+'r'.repeat(7)+'c'.repeat(18);
+  for(const ty of plan){let f,tries=0;
+    do{f=Math.round((3050+r()*26800)*10)/10}while(sts.some(s=>Math.abs(s.f-f)<15)&&++tries<99);
+    const st={ty,f,base:.45+.55*r(),fr:.05+.15*r(),fp:r()*6.283,jam:false};
+    const x=r();
+    if(ty==='n')st.sc=x<.5?{t:'h',m0:[0,15,30,45][(r()*4)|0],m1:0}
+      :x<.85?{t:'d',h0:19+((r()*5)|0),h1:1+((r()*5)|0)}:{t:'a'};
+    else if(ty==='c')st.sc=x<.25?{t:'d',h0:6+((r()*4)|0),h1:16+((r()*6)|0)}:{t:'a'};
+    else st.sc=x<.3?{t:'h',m0:[0,20,40][(r()*3)|0],m1:0}:{t:'a'};
+    if(st.sc.t==='h'&&!st.sc.m1)st.sc.m1=st.sc.m0+8+((r()*7)|0);
+    if(ty==='m'){const A='ABCDEFGHJKLMNPQRSTUVWXYZ',P='KWVUX';
+      st.cs=P[(r()*5)|0]+((r()*10)|0)+A[(r()*24)|0]+A[(r()*24)|0];
+      st.msg='VVV DE '+st.cs+' '+WORDS[(r()*WORDS.length)|0];}
+    if(ty==='n')st.vs=r();
+    sts.push(st);}
+  const ns=sts.filter(s=>s.ty==='n');let picked=0;
+  while(picked<4){const k=ns[(r()*ns.length)|0];if(!k.jam){k.jam=true;picked++}}
+  sts.sort((a,b)=>a.f-b.f);return sts}
+/* ================= tests (?test) ================= */
+function runTests(){const T=[],eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  const b1=makeBand(12345),b2=makeBand(12345),b3=makeBand(99);
+  T.push(['deterministic placement (seed 12345 twice)',
+    eq(b1.map(s=>[s.f,s.ty,s.sc,s.jam]),b2.map(s=>[s.f,s.ty,s.sc,s.jam]))]);
+  T.push(['different seed differs',!eq(b1.map(s=>s.f),b3.map(s=>s.f))]);
+  T.push(['band size & range',b1.length===40&&b1.every(s=>s.f>=3000&&s.f<=30000)]);
+  T.push(['stations spaced >15 kHz',b1.every((s,i)=>i===0||b1[i].f-b1[i-1].f>15)]);
+  const m='CQ DE K7ABC QSL 599';
+  T.push(['morse round-trip',morseDecode(morseEncode(m))===m]);
+  const bcn=b1.find(s=>s.ty==='m');
+  T.push(['beacon msg decodable',morseDecode(morseEncode(bcn.msg))===bcn.msg]);
+  T.push(['morse timing units',eq(morseTiming(morseEncode('EE E')),[[1,3],[1,7],[1,7]])
+    &&eq(morseTiming(morseEncode('A')),[[1,1],[3,7]])]);
+  const d=(h,mi)=>new Date(Date.UTC(2026,0,1,h,mi)),night={t:'d',h0:22,h1:4};
+  T.push(['sched crosses UTC midnight',schedOn(night,d(23,0))&&schedOn(night,d(2,30))
+    &&schedOn(night,d(22,0))&&!schedOn(night,d(4,0))&&!schedOn(night,d(12,0))]);
+  const hr={t:'h',m0:0,m1:10};
+  T.push(['sched hourly window',schedOn(hr,d(5,5))&&schedOn(hr,d(5,0))&&!schedOn(hr,d(5,10))&&!schedOn(hr,d(5,45))]);
+  return T}
+/* ================= receiver state ================= */
+let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false;
+let ctx=null,master,bus,noiseG,crackG,hetOsc,hetG,act=null,curAud=0,meterV=0;
+let VOICES=[];
+const NAMES={n:'numbers stn',m:'morse beacon',r:'rtty/data',c:'broadcast'};
+function strength(st,now,t){if(!schedOn(st.sc,now))return 0;
+  const h=now.getHours()+now.getMinutes()/60;
+  const day=Math.max(0,Math.sin((h-6)/12*Math.PI));   // 0 night … 1 midday, local
+  const pos=(st.f-3000)/27000;                        // 0 low band … 1 high band
+  const prop=.35+.65*(day*pos+(1-day)*(1-pos));
+  const fade=.75+.25*Math.sin(6.283*st.fr*t+st.fp);
+  return st.base*prop*fade}
+function nearest(f){let best=null,bd=6;
+  for(const s of band){const d=Math.abs(s.f-f);if(d<bd){bd=d;best=s}}return best}
+const srng=st=>mulberry32((seed*31+Math.round(st.f*10))>>>0);
+/* ================= audio graph ================= */
+function tone(dest,type,f,t,dur,peak){const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type;o.frequency.value=f;o.connect(g);g.connect(dest);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.02);
+  g.gain.setTargetAtTime(0,t+dur*.6,dur*.25);o.start(t);o.stop(t+dur+1)}
+function chainBase(st){const g=ctx.createGain();g.gain.value=0;g.connect(bus);
+  const c={st,g,tm:[],osc:[],dead:false};
+  c.stop=()=>{c.dead=true;c.tm.forEach(clearTimeout);
+    c.osc.forEach(o=>{try{o.stop()}catch(e){}});
+    setTimeout(()=>{try{g.disconnect()}catch(e){}},100);
+    if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();};
+  return c}
+function buildMorse(st){const c=chainBase(st);
+  const o=ctx.createOscillator();o.type='sine';o.frequency.value=600;
+  const kg=ctx.createGain();kg.gain.value=0;o.connect(kg);kg.connect(c.g);o.start();c.osc.push(o);
+  const seq=morseTiming(morseEncode(st.msg)),u=.09;let next=0;
+  (function loop(){if(c.dead)return;let t=Math.max(next,ctx.currentTime+.1);
+    for(const[on,off]of seq){kg.gain.setTargetAtTime(.8,t,.004);
+      kg.gain.setTargetAtTime(0,t+on*u,.004);t+=(on+off)*u}
+    next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
+  return c}
+function buildRtty(st){const c=chainBase(st);
+  const o=ctx.createOscillator();o.type='sine';o.frequency.value=1445;
+  const kg=ctx.createGain();kg.gain.value=.55;o.connect(kg);kg.connect(c.g);o.start();c.osc.push(o);
+  const rs=srng(st);let next=0;
+  (function loop(){if(c.dead)return;let t=Math.max(next,ctx.currentTime+.1);
+    for(let i=0;i<256;i++){o.frequency.setValueAtTime(rs()<.5?1445:1615,t);t+=.022}
+    next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
+  return c}
+function buildCarrier(st){const c=chainBase(st);
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1100;
+  const mg=ctx.createGain();mg.gain.value=.5;lp.connect(mg);mg.connect(c.g);
+  const rs=srng(st),pent=[0,2,4,7,9,12];let next=0;
+  (function loop(){if(c.dead)return;let t=Math.max(next,ctx.currentTime+.1);
+    for(let i=0;i<12;i++){if(rs()<.18){t+=.5;continue}
+      const f=196*Math.pow(2,(pent[(rs()*6)|0]+(rs()<.3?12:0))/12);
+      tone(lp,'triangle',f,t,.55,.5);t+=.42+.21*((rs()*2)|0)}
+    next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
+  return c}
+function buildNumbers(st){const c=chainBase(st);const rs=srng(st);
+  const tune=Array.from({length:5+((rs()*3)|0)},()=>[0,3,5,7,10,12][(rs()*6)|0]);
+  const sched=(fn,ms)=>{if(!c.dead)c.tm.push(setTimeout(fn,ms))};
+  function melody(t0){let t=t0;
+    for(let k=0;k<2;k++){for(const n of tune){
+      for(const[ty,det,pk]of[['sine',0,.4],['triangle',3,.12]]){
+        const o=ctx.createOscillator(),og=ctx.createGain();o.type=ty;
+        o.frequency.value=880*Math.pow(2,n/12)+det;o.connect(og);og.connect(c.g);
+        og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(pk,t+.008);
+        og.gain.setTargetAtTime(0,t+.03,.22);o.start(t);o.stop(t+1.2)}
+      t+=.42}t+=.6}
+    return t+.5}
+  function beeps(digits,done){let t=ctx.currentTime+.05;   // two-tone fallback
+    for(const d of digits){tone(c.g,'sine',560+d*52,t,.09,.5);
+      tone(c.g,'sine',1180+d*52,t+.1,.09,.5);t+=.32}
+    sched(done,(t-ctx.currentTime)*1000+250)}
+  function speak(list,i){if(c.dead)return;
+    if(i>=list.length)return phaseOff();
+    const voice=pickVoice(st);
+    if(!voice)return beeps(list[i].split('').map(Number),()=>speak(list,i+1));
+    if(curAud<.08)return sched(()=>speak(list,i+1),2800); // too weak / detuned: lost in noise
+    const u=new SpeechSynthesisUtterance(list[i].split('').join(' '));
+    u.voice=voice;u.lang=voice.lang;u.rate=.72;u.pitch=.85;
+    u.volume=Math.min(1,curAud*1.6*vol*(st.jam?.55:1));
+    let fired=false;const nx=()=>{if(!fired){fired=true;sched(()=>speak(list,i+1),400)}};
+    u.onend=nx;u.onerror=nx;sched(nx,6000);speechSynthesis.speak(u)}
+  function phaseMelody(){if(c.dead)return;const end=melody(ctx.currentTime+.1);
+    sched(phaseDigits,(end-ctx.currentTime)*1000+300)}
+  function phaseDigits(){if(c.dead)return;
+    const groups=Array.from({length:6},()=>Array.from({length:5},()=>(rs()*10)|0).join(''));
+    speak(groups.concat(groups),0)}
+  function phaseOff(){if(c.dead)return;let t=ctx.currentTime+.4;
+    for(const f of[820,700,580])tone(c.g,'sine',f,t,.28,.5),t+=.42;
+    sched(phaseMelody,(t-ctx.currentTime)*1000+2200)}
+  phaseMelody();
+  if(st.jam){ // jammer parked on this frequency — harsh swept buzz
+    const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=1.2;
+    const jg=ctx.createGain();jg.gain.value=.5;bp.connect(jg);jg.connect(c.g);
+    for(const f of[88,88.9]){const o=ctx.createOscillator();o.type='sawtooth';
+      o.frequency.value=f;o.connect(bp);o.start();c.osc.push(o)}
+    const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.31;
+    lg.gain.value=420;lfo.connect(lg);lg.connect(bp.frequency);lfo.start();c.osc.push(lfo)}
+  return c}
+const BUILD={n:buildNumbers,m:buildMorse,r:buildRtty,c:buildCarrier};
+function pickVoice(st){if(typeof speechSynthesis==='undefined'||!VOICES.length)return null;
+  const alt=VOICES.filter(v=>!/^en/i.test(v.lang)),pool=alt.length?alt:VOICES;
+  return pool[(st.vs*pool.length)|0]}
+function initAudio(){ctx=new AudioContext();
+  master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);
+  const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=300;
+  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3200;
+  bus=hp;hp.connect(lp);lp.connect(master);
+  const len=2*ctx.sampleRate,buf=ctx.createBuffer(1,len,ctx.sampleRate),ch=buf.getChannelData(0);
+  for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;
+  const nsrc=ctx.createBufferSource();nsrc.buffer=buf;nsrc.loop=true;
+  noiseG=ctx.createGain();noiseG.gain.value=.1;nsrc.connect(noiseG);noiseG.connect(bus);nsrc.start();
+  const csrc=ctx.createBufferSource();csrc.buffer=buf;csrc.loop=true;csrc.playbackRate.value=1.7;
+  crackG=ctx.createGain();crackG.gain.value=0;csrc.connect(crackG);crackG.connect(bus);csrc.start();
+  hetOsc=ctx.createOscillator();hetOsc.type='sine';hetOsc.frequency.value=1;
+  hetG=ctx.createGain();hetG.gain.value=0;hetOsc.connect(hetG);hetG.connect(bus);hetOsc.start();
+  (function crackle(){if(pwrOn){const t=ctx.currentTime,a=.1+Math.random()*.5;
+      crackG.gain.setValueAtTime(0,t);crackG.gain.linearRampToValueAtTime(a,t+.004);
+      crackG.gain.setTargetAtTime(0,t+.01,.02)}
+    setTimeout(crackle,250+Math.random()*4800)})()}
+function power(on){pwrOn=on;
+  if(on){if(!ctx)initAudio();ctx.resume();
+    master.gain.setTargetAtTime(vol,ctx.currentTime,.3)}       // soft ramp, no pop
+  else if(ctx){master.gain.setTargetAtTime(0,ctx.currentTime,.15);
+    if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();
+    setTimeout(()=>{if(!pwrOn)ctx.suspend()},800)}}
+function switchTo(st){if(act){const old=act;
+    old.g.gain.setTargetAtTime(0,ctx.currentTime,.04);setTimeout(()=>old.stop(),300);act=null}
+  if(st)act=BUILD[st.ty](st)}
+/* ================= UI ================= */
+function boot(){
+  const $=id=>document.getElementById(id);
+  const hash=location.hash.match(/s=(\d+)/);
+  seed=hash?+hash[1]:(Math.random()*1e9)|0;
+  if(!hash)location.hash='s='+seed;
+  band=makeBand(seed);
+  $('foot').textContent='NET '+seed+' — same URL, same band. share it.';
+  if(location.search.includes('test')){const el=$('tests');el.hidden=false;
+    const res=runTests();
+    el.textContent=res.map(([n,ok])=>(ok?'PASS':'FAIL')+'  '+n).join('\n')
+      +'\n— '+res.filter(r=>r[1]).length+'/'+res.length+' passed';
+    if(res.some(r=>!r[1]))el.style.color='#e77';}
+  if(typeof speechSynthesis!=='undefined'){VOICES=speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged=()=>VOICES=speechSynthesis.getVoices();}
+  const setF=f=>{freqk=Math.min(30000,Math.max(3000,f))};
+  function knob(el,scale,cb){let ang=0,last=null;
+    const angOf=e=>{const r=el.getBoundingClientRect();
+      return Math.atan2(e.clientY-r.top-r.height/2,e.clientX-r.left-r.width/2)*57.2958};
+    el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);last=angOf(e);e.preventDefault()});
+    el.addEventListener('pointermove',e=>{if(last===null)return;const a=angOf(e);
+      let d=a-last;if(d>180)d-=360;if(d<-180)d+=360;last=a;ang+=d;
+      el.style.setProperty('--a',ang+'deg');cb(d*scale)});
+    const up=()=>last=null;el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)}
+  knob($('dial'),6,d=>setF(freqk+d));           // ~2.2 MHz per turn
+  knob($('fine'),.03,d=>setF(freqk+d));         // ~11 kHz per turn
+  knob($('vol'),.003,d=>{vol=Math.min(1,Math.max(0,vol+d));
+    if(ctx&&pwrOn)master.gain.setTargetAtTime(vol,ctx.currentTime,.05)});
+  $('panel').addEventListener('wheel',e=>{e.preventDefault();
+    setF(freqk+(e.deltaY>0?-1:1)*(e.shiftKey?.1:5))},{passive:false});
+  addEventListener('keydown',e=>{const s=e.shiftKey?.1:1;
+    if(e.key==='ArrowRight')setF(freqk+s);else if(e.key==='ArrowLeft')setF(freqk-s);
+    else if(e.key==='PageUp')setF(freqk+100);else if(e.key==='PageDown')setF(freqk-100)});
+  $('pwr').addEventListener('click',()=>{$('pwr').classList.toggle('on');
+    power($('pwr').classList.contains('on'))});
+  $('bfo').addEventListener('click',()=>{bfoOn=!bfoOn;$('bfo').classList.toggle('on',bfoOn)});
+  const logs=[];
+  $('logbtn').addEventListener('click',()=>{const now=new Date(),st=nearest(freqk);
+    const t=ctx?ctx.currentTime:0;
+    const id=st&&strength(st,now,t)*selOf(st)>.18?NAMES[st.ty]+(st.jam?' + jammer':''):'unid';
+    logs.push({z:zulu(now),f:(freqk/1000).toFixed(4),id,note:$('note').value.trim()});
+    $('note').value='';
+    $('logtbl').innerHTML=logs.map(l=>'<tr><td>'+l.z+'</td><td>'+l.f+' MHz</td><td>'+l.id
+      +'</td><td>'+esc(l.note)+'</td></tr>').reverse().join('')});
+  $('expbtn').addEventListener('click',()=>{if(!logs.length)return;
+    const txt=logs.map(l=>l.z+' '+l.f+' MHz — '+[l.id,l.note].filter(Boolean).join(', ')).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+    a.download='skywave-log.txt';a.click();URL.revokeObjectURL(a.href)});
+  const esc=s=>s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  const zulu=d=>String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'z';
+  const selOf=st=>{const s=Math.max(0,1-Math.abs(st.f-freqk)/4);return s*s};
+  /* -------- main loop -------- */
+  function frame(){requestAnimationFrame(frame);
+    const now=new Date();
+    $('clock').textContent=zulu(now);
+    $('freq').innerHTML=(freqk/1000).toFixed(4)+'<small>MHz</small>';
+    let s=0,sel=0,st=null,hint='';
+    if(ctx&&pwrOn){const t=ctx.currentTime;
+      st=nearest(freqk);
+      if(st!==(act&&act.st))switchTo(st);
+      if(st){s=strength(st,now,t);sel=selOf(st)}
+      const aud=s*sel;curAud=aud;
+      const beat=Math.abs(st?st.f-freqk:0)*1000;                 // heterodyne: kHz off → Hz
+      hetOsc.frequency.setTargetAtTime(Math.max(beat,.01),t,.02); // continuous glide
+      hetG.gain.setTargetAtTime(s*.28*Math.max(0,1-beat/3800),t,.05);
+      noiseG.gain.setTargetAtTime(.11*(1-.82*aud),t,.08);
+      if(act)act.g.gain.setTargetAtTime(
+        (st.ty==='m'||st.ty==='r')?(bfoOn?aud*.9:0):aud*.9,t,.06);
+      if(st&&(st.ty==='m'||st.ty==='r')&&!bfoOn&&s*sel>.1)
+        hint='carrier detected — no audio? switch in the BFO.';
+      else hint='tune slowly. the good ones keep schedules (UTC).';
+    }else{curAud=0;hint=ctx?'':'flip POWER to wake the receiver — then tune.'}
+    const mt=Math.min(1,s*(.3+.7*sel));
+    meterV+=(mt-meterV)*(mt>meterV?.35:.03);                     // ballistic needle
+    $('needle').style.transform='rotate('+(-52+104*meterV)+'deg)';
+    $('hint').textContent=hint}
+  frame()}
+if(typeof document!=='undefined')boot();
+</script></body></html>
