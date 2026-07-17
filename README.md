@@ -45,13 +45,36 @@ frequencies carry better at night, high frequencies by day.
 | PgUp / PgDn | ±100 kHz |
 | LOG / EXPORT | capture freq + UTC + note; export a DX-style plain-text log |
 
-## Tests
+## Tests — the machine gates
 
-The deterministic core (band generation, morse codec and timing, UTC schedule windows)
-has a framework-free test harness:
+`./check.sh` is the merge gate (this is what CI runs). It is exactly:
 
-- in a browser: open [`index.html?test`](https://benettia.github.io/skywave/?test) —
-  results print above the panel
-- headless: `node test/run.js` (this is what CI runs)
+1. `node --test 'test/*.test.js'` — the deterministic core: band generation,
+   morse codec and timing, UTC schedule windows, boundary cases.
+2. `npx playwright test smoke` — headless boot: page loads, zero console
+   errors, POWER exists, flipping it creates an AudioContext.
+3. runtime-deps check — `package.json` dependencies must stay empty. Dev deps only.
+4. determinism pin — seed 123456's band hashes to `test/fixtures/band-layout.sha256`.
+   Changed the generator on purpose? Update the pin in the same commit and say so.
 
-Audio behavior (heterodyne glide, morse decodability) is verified by ear.
+Setup once: `npm install` (pulls the one dev dep, playwright).
+The in-page harness still works too: open [`index.html?test`](https://benettia.github.io/skywave/?test).
+
+## The listen loop — ears are a feedback channel, not a gate
+
+No CI can hear. Audio behavior (heterodyne glide, morse decodability, the *feel*)
+is verified by human ears:
+
+```
+python3 -m http.server 8080     # then open http://localhost:8080
+```
+
+Anything that sounds wrong → `gh issue create -l by-ear` (create the label once:
+`gh label create by-ear -d "heard something wrong"`). Issues feed the next run;
+they never block a merge.
+
+Listen checklist:
+
+- **M0** — page boots silent. Flip POWER: static floor fades in with a soft
+  ramp, no pop or click. Occasional crackle ticks. Flip it off: audio ramps
+  down clean.
