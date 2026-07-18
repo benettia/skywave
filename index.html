@@ -64,10 +64,7 @@ table{width:100%;border-collapse:collapse;font:11px ui-monospace,Consolas,monosp
 td{padding:4px 10px;border-bottom:1px solid #1e1b1e;color:#9a8f7d}
 td:first-child{color:var(--amber)}
 #foot{margin-top:14px;font-size:10px;letter-spacing:1px;text-align:center;color:#4d463d}
-#tests{width:880px;max-width:100%;background:#0a0f0a;border:1px solid #1e2a1e;color:#9c9;
-  font:12px ui-monospace,Consolas,monospace;padding:14px;margin-bottom:16px;white-space:pre-wrap}
 </style></head><body>
-<pre id="tests" hidden></pre>
 <div id="panel">
   <div id="top"><span id="brand">SKYWAVE<small>SW-1 COMMUNICATIONS RECEIVER · 3–30 MC</small></span><span id="clock">····z</span></div>
   <div id="main">
@@ -90,82 +87,16 @@ td:first-child{color:var(--amber)}
   <div id="logwrap"><table id="logtbl"></table></div>
   <div id="foot"></div>
 </div>
-<script>
-'use strict';
-/* ================= deterministic core (tested) ================= */
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
-  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-const MORSE={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',J:'.---',
-  K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',T:'-',U:'..-',
-  V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..',0:'-----',1:'.----',2:'..---',3:'...--',
-  4:'....-',5:'.....',6:'-....',7:'--...',8:'---..',9:'----.'};
-const MORSE_R=Object.fromEntries(Object.entries(MORSE).map(([k,v])=>[v,k]));
-function morseEncode(txt){return txt.trim().toUpperCase().split(/\s+/)
-  .map(w=>[...w].map(c=>MORSE[c]||'').filter(Boolean).join(' ')).join(' / ')}
-function morseDecode(pat){return pat.split(' / ')
-  .map(w=>w.split(' ').map(s=>MORSE_R[s]||'').join('')).join(' ')}
-function morseTiming(pat){ // -> [[onUnits,offUnits],...]  dit=1 dah=3 ltr=3 word=7
-  const out=[];for(let i=0;i<pat.length;i++){const c=pat[i];if(c!=='.'&&c!=='-')continue;
-    const n=pat[i+1];let off=1;if(n===undefined)off=7;else if(n===' ')off=pat[i+2]==='/'?7:3;
-    out.push([c==='.'?1:3,off]);}return out}
-function schedOn(sc,d){if(sc.t==='a')return true;
-  if(sc.t==='h'){const m=d.getUTCMinutes();return m>=sc.m0&&m<sc.m1}
-  const h=d.getUTCHours();return sc.h0<=sc.h1?(h>=sc.h0&&h<sc.h1):(h>=sc.h0||h<sc.h1)}
-const WORDS=['MAGPIE','ORION','VEGA','ALTAIR','SABLE','LYRA','QSL QRZ','QRT 73','GRID JN45','ECHO 9'];
-function makeBand(seed){const r=mulberry32(seed),sts=[];
-  const plan='n'.repeat(7)+'m'.repeat(8)+'r'.repeat(7)+'c'.repeat(18);
-  for(const ty of plan){let f,tries=0;
-    do{f=Math.round((3050+r()*26800)*10)/10}while(sts.some(s=>Math.abs(s.f-f)<15)&&++tries<99);
-    const st={ty,f,base:.45+.55*r(),fr:.05+.15*r(),fp:r()*6.283,jam:false};
-    const x=r();
-    if(ty==='n')st.sc=x<.5?{t:'h',m0:[0,15,30,45][(r()*4)|0],m1:0}
-      :x<.85?{t:'d',h0:19+((r()*5)|0),h1:1+((r()*5)|0)}:{t:'a'};
-    else if(ty==='c')st.sc=x<.25?{t:'d',h0:6+((r()*4)|0),h1:16+((r()*6)|0)}:{t:'a'};
-    else st.sc=x<.3?{t:'h',m0:[0,20,40][(r()*3)|0],m1:0}:{t:'a'};
-    if(st.sc.t==='h'&&!st.sc.m1)st.sc.m1=st.sc.m0+8+((r()*7)|0);
-    if(ty==='m'){const A='ABCDEFGHJKLMNPQRSTUVWXYZ',P='KWVUX';
-      st.cs=P[(r()*5)|0]+((r()*10)|0)+A[(r()*24)|0]+A[(r()*24)|0];
-      st.msg='VVV DE '+st.cs+' '+WORDS[(r()*WORDS.length)|0];}
-    if(ty==='n')st.vs=r();
-    sts.push(st);}
-  const ns=sts.filter(s=>s.ty==='n');let picked=0;
-  while(picked<4){const k=ns[(r()*ns.length)|0];if(!k.jam){k.jam=true;picked++}}
-  sts.sort((a,b)=>a.f-b.f);return sts}
-/* ================= tests (?test) ================= */
-function runTests(){const T=[],eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-  const b1=makeBand(12345),b2=makeBand(12345),b3=makeBand(99);
-  T.push(['deterministic placement (seed 12345 twice)',
-    eq(b1.map(s=>[s.f,s.ty,s.sc,s.jam]),b2.map(s=>[s.f,s.ty,s.sc,s.jam]))]);
-  T.push(['different seed differs',!eq(b1.map(s=>s.f),b3.map(s=>s.f))]);
-  T.push(['band size & range',b1.length===40&&b1.every(s=>s.f>=3000&&s.f<=30000)]);
-  T.push(['stations spaced >15 kHz',b1.every((s,i)=>i===0||b1[i].f-b1[i-1].f>15)]);
-  const m='CQ DE K7ABC QSL 599';
-  T.push(['morse round-trip',morseDecode(morseEncode(m))===m]);
-  const bcn=b1.find(s=>s.ty==='m');
-  T.push(['beacon msg decodable',morseDecode(morseEncode(bcn.msg))===bcn.msg]);
-  T.push(['morse timing units',eq(morseTiming(morseEncode('EE E')),[[1,3],[1,7],[1,7]])
-    &&eq(morseTiming(morseEncode('A')),[[1,1],[3,7]])]);
-  const d=(h,mi)=>new Date(Date.UTC(2026,0,1,h,mi)),night={t:'d',h0:22,h1:4};
-  T.push(['sched crosses UTC midnight',schedOn(night,d(23,0))&&schedOn(night,d(2,30))
-    &&schedOn(night,d(22,0))&&!schedOn(night,d(4,0))&&!schedOn(night,d(12,0))]);
-  const hr={t:'h',m0:0,m1:10};
-  T.push(['sched hourly window',schedOn(hr,d(5,5))&&schedOn(hr,d(5,0))&&!schedOn(hr,d(5,10))&&!schedOn(hr,d(5,45))]);
-  return T}
+<script type="module">
+import{split}from'./src/rng.js';
+import{makeBand,strength,nearest}from'./src/band.js';
+import{morseEncode,morseTiming}from'./src/morse.js';
 /* ================= receiver state ================= */
 let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false;
 let ctx=null,master,bus,noiseG,crackG,hetOsc,hetG,act=null,curAud=0,meterV=0;
 let VOICES=[];
 const NAMES={n:'numbers stn',m:'morse beacon',r:'rtty/data',c:'broadcast'};
-function strength(st,now,t){if(!schedOn(st.sc,now))return 0;
-  const h=now.getHours()+now.getMinutes()/60;
-  const day=Math.max(0,Math.sin((h-6)/12*Math.PI));   // 0 night … 1 midday, local
-  const pos=(st.f-3000)/27000;                        // 0 low band … 1 high band
-  const prop=.35+.65*(day*pos+(1-day)*(1-pos));
-  const fade=.75+.25*Math.sin(6.283*st.fr*t+st.fp);
-  return st.base*prop*fade}
-function nearest(f){let best=null,bd=6;
-  for(const s of band){const d=Math.abs(s.f-f);if(d<bd){bd=d;best=s}}return best}
-const srng=st=>mulberry32((seed*31+Math.round(st.f*10))>>>0);
+const srng=st=>split(seed,Math.round(st.f*10));
 /* ================= audio graph ================= */
 function tone(dest,type,f,t,dur,peak){const o=ctx.createOscillator(),g=ctx.createGain();
   o.type=type;o.frequency.value=f;o.connect(g);g.connect(dest);
@@ -286,11 +217,6 @@ function boot(){
   if(!hash)location.hash='s='+seed;
   band=makeBand(seed);
   $('foot').textContent='NET '+seed+' — same URL, same band. share it.';
-  if(location.search.includes('test')){const el=$('tests');el.hidden=false;
-    const res=runTests();
-    el.textContent=res.map(([n,ok])=>(ok?'PASS':'FAIL')+'  '+n).join('\n')
-      +'\n— '+res.filter(r=>r[1]).length+'/'+res.length+' passed';
-    if(res.some(r=>!r[1]))el.style.color='#e77';}
   if(typeof speechSynthesis!=='undefined'){VOICES=speechSynthesis.getVoices();
     speechSynthesis.onvoiceschanged=()=>VOICES=speechSynthesis.getVoices();}
   const setF=f=>{freqk=Math.min(30000,Math.max(3000,f))};
@@ -315,7 +241,7 @@ function boot(){
     power($('pwr').classList.contains('on'))});
   $('bfo').addEventListener('click',()=>{bfoOn=!bfoOn;$('bfo').classList.toggle('on',bfoOn)});
   const logs=[];
-  $('logbtn').addEventListener('click',()=>{const now=new Date(),st=nearest(freqk);
+  $('logbtn').addEventListener('click',()=>{const now=new Date(),st=nearest(band,freqk);
     const t=ctx?ctx.currentTime:0;
     const id=st&&strength(st,now,t)*selOf(st)>.18?NAMES[st.ty]+(st.jam?' + jammer':''):'unid';
     logs.push({z:zulu(now),f:(freqk/1000).toFixed(4),id,note:$('note').value.trim()});
@@ -336,7 +262,7 @@ function boot(){
     $('freq').innerHTML=(freqk/1000).toFixed(4)+'<small>MHz</small>';
     let s=0,sel=0,st=null,hint='';
     if(ctx&&pwrOn){const t=ctx.currentTime;
-      st=nearest(freqk);
+      st=nearest(band,freqk);
       if(st!==(act&&act.st))switchTo(st);
       if(st){s=strength(st,now,t);sel=selOf(st)}
       const aud=s*sel;curAud=aud;
@@ -355,5 +281,5 @@ function boot(){
     $('needle').style.transform='rotate('+(-52+104*meterV)+'deg)';
     $('hint').textContent=hint}
   frame()}
-if(typeof document!=='undefined')boot();
+boot();
 </script></body></html>

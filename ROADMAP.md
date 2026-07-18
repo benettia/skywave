@@ -10,10 +10,14 @@ into pure `src/` modules with real tests, closing spec gaps as they go.
 - [x] **M0 scaffold** — package.json (dev deps only), `node --test` suite
   wrapping the deterministic core, playwright boot smoke, `check.sh` running all
   four gates, determinism pin in test/fixtures, README listen loop.
-- [ ] **M1 the band** — extract `src/rng.js` (seeded, splittable) +
+- [x] **M1 the band** — extract `src/rng.js` (seeded, splittable) +
   `src/band.js` (placement, schedules, propagation curves) as pure ES modules.
   Boundary tests: windows across UTC midnight, band edges, spacing. Pin moves
   with the extraction only if byte-identical output is impossible; say so.
+  (Extraction came out byte-identical — pin unchanged. `src/morse.js` moved
+  too, verbatim: the module conversion killed the eval-based test loader, so
+  everything the tests touch had to become importable. M2 still owes RTTY
+  framing, the numbers-script generator, and any morse gaps.)
 - [ ] **M2 signals** — `src/morse.js` + `src/rtty.js`, encoders WITH decoders,
   exact round-trip tests. Real RTTY framing (Baudot, start/stop bits), not
   random bits. Numbers-station script generator (interval melody, five-digit

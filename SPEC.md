@@ -82,8 +82,7 @@ Half the app is sound, and no CI can hear. Deal with it by construction:
   rtty (encoders WITH decoders, round-trip exact), tune (strength and beat
   frequency as pure functions of dial offset). Fully testable under `node --test`.
   If logic can be pulled out of the audio graph into a pure module, it must be.
-  (The current monolith keeps this core inline in `index.html`; milestones
-  M1–M3 extract it into `src/`. The purity rule already applies inline.)
+  (M1 extracted rng, band, and morse into `src/`; M2–M3 extract the rest.)
 - `src/audio.js` and `index.html` are the thin shell: wire pure outputs to
   oscillators and the DOM. The shell gets a headless boot smoke: page loads,
   zero console errors, POWER exists, flipping it creates an AudioContext.

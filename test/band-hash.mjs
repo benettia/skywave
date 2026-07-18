@@ -2,7 +2,7 @@
 // Gate 4 of check.sh runs this file directly and compares against
 // test/fixtures/band-layout.sha256. Regenerate: node test/band-hash.mjs
 import { createHash } from 'node:crypto';
-import { makeBand } from './load.mjs';
+import { makeBand } from '../src/band.js';
 
 export const PIN_SEED = 123456;
 export const bandHash = () =>
