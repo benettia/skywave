@@ -27,10 +27,15 @@ into pure `src/` modules with real tests, closing spec gaps as they go.
   off its split rng stream. Numbers scripts moved to `src/numbers.js`, same
   data the shell used to improvise inline. `makeBand` untouched, pin
   unchanged.)
-- [ ] **M3 receiver core** — `src/tune.js`: strength vs offset and heterodyne
+- [x] **M3 receiver core** — `src/tune.js`: strength vs offset and heterodyne
   beat as pure functions — continuous, beat → 0 at zero-beat, no sign flip.
   `src/audio.js` graph (noise floor, carriers, BFO, poisson crackle) as the
   thin shell. Power gesture keeps its soft ramp.
+  (Pure extraction, coefficients unchanged: selectivity, beat, het loudness,
+  AGC floor, and the BFO gate moved out of the frame loop into `src/tune.js`;
+  the whole audio graph moved into `src/audio.js` behind a five-call surface —
+  power / retune / apply / setVol / now. index.html now only owns panel state
+  and pushes tune.js outputs into the graph each frame. Pin unchanged.)
 - [ ] **M4 the panel** — dial + fine tune, 7-seg readout, ballistic meter, BFO
   toggle, volume. Matte black, one amber glow. Cold-war equipment, not a synth
   plugin. UI-only changes still survive the smoke.
