@@ -91,6 +91,8 @@ td:first-child{color:var(--amber)}
 import{split}from'./src/rng.js';
 import{makeBand,strength,nearest}from'./src/band.js';
 import{morseEncode,morseTiming}from'./src/morse.js';
+import{rttyEncode,rttyText,freqOf,UNIT,MARK_HZ}from'./src/rtty.js';
+import{intervalMelody,numbersScript,beepFreqs,SIGNOFF_HZ}from'./src/numbers.js';
 /* ================= receiver state ================= */
 let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false;
 let ctx=null,master,bus,noiseG,crackG,hetOsc,hetG,act=null,curAud=0,meterV=0;
@@ -119,11 +121,12 @@ function buildMorse(st){const c=chainBase(st);
     next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
   return c}
 function buildRtty(st){const c=chainBase(st);
-  const o=ctx.createOscillator();o.type='sine';o.frequency.value=1445;
+  const o=ctx.createOscillator();o.type='sine';o.frequency.value=MARK_HZ;
   const kg=ctx.createGain();kg.gain.value=.55;o.connect(kg);kg.connect(c.g);o.start();c.osc.push(o);
-  const rs=srng(st);let next=0;
+  const bits=rttyEncode(rttyText(srng(st)));let next=0;  // the station repeats its tape
   (function loop(){if(c.dead)return;let t=Math.max(next,ctx.currentTime+.1);
-    for(let i=0;i<256;i++){o.frequency.setValueAtTime(rs()<.5?1445:1615,t);t+=.022}
+    for(const b of bits){o.frequency.setValueAtTime(freqOf(b),t);t+=UNIT}
+    o.frequency.setValueAtTime(MARK_HZ,t);t+=UNIT*32;    // idle on mark between repeats
     next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
   return c}
 function buildCarrier(st){const c=chainBase(st);
@@ -137,7 +140,7 @@ function buildCarrier(st){const c=chainBase(st);
     next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
   return c}
 function buildNumbers(st){const c=chainBase(st);const rs=srng(st);
-  const tune=Array.from({length:5+((rs()*3)|0)},()=>[0,3,5,7,10,12][(rs()*6)|0]);
+  const tune=intervalMelody(rs);
   const sched=(fn,ms)=>{if(!c.dead)c.tm.push(setTimeout(fn,ms))};
   function melody(t0){let t=t0;
     for(let k=0;k<2;k++){for(const n of tune){
@@ -149,8 +152,8 @@ function buildNumbers(st){const c=chainBase(st);const rs=srng(st);
       t+=.42}t+=.6}
     return t+.5}
   function beeps(digits,done){let t=ctx.currentTime+.05;   // two-tone fallback
-    for(const d of digits){tone(c.g,'sine',560+d*52,t,.09,.5);
-      tone(c.g,'sine',1180+d*52,t+.1,.09,.5);t+=.32}
+    for(const d of digits){const[lo,hi]=beepFreqs(d);
+      tone(c.g,'sine',lo,t,.09,.5);tone(c.g,'sine',hi,t+.1,.09,.5);t+=.32}
     sched(done,(t-ctx.currentTime)*1000+250)}
   function speak(list,i){if(c.dead)return;
     if(i>=list.length)return phaseOff();
@@ -164,11 +167,9 @@ function buildNumbers(st){const c=chainBase(st);const rs=srng(st);
     u.onend=nx;u.onerror=nx;sched(nx,6000);speechSynthesis.speak(u)}
   function phaseMelody(){if(c.dead)return;const end=melody(ctx.currentTime+.1);
     sched(phaseDigits,(end-ctx.currentTime)*1000+300)}
-  function phaseDigits(){if(c.dead)return;
-    const groups=Array.from({length:6},()=>Array.from({length:5},()=>(rs()*10)|0).join(''));
-    speak(groups.concat(groups),0)}
+  function phaseDigits(){if(c.dead)return;speak(numbersScript(rs).spoken,0)}
   function phaseOff(){if(c.dead)return;let t=ctx.currentTime+.4;
-    for(const f of[820,700,580])tone(c.g,'sine',f,t,.28,.5),t+=.42;
+    for(const f of SIGNOFF_HZ)tone(c.g,'sine',f,t,.28,.5),t+=.42;
     sched(phaseMelody,(t-ctx.currentTime)*1000+2200)}
   phaseMelody();
   if(st.jam){ // jammer parked on this frequency — harsh swept buzz

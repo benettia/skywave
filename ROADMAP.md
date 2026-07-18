@@ -18,10 +18,15 @@ into pure `src/` modules with real tests, closing spec gaps as they go.
   too, verbatim: the module conversion killed the eval-based test loader, so
   everything the tests touch had to become importable. M2 still owes RTTY
   framing, the numbers-script generator, and any morse gaps.)
-- [ ] **M2 signals** — `src/morse.js` + `src/rtty.js`, encoders WITH decoders,
+- [x] **M2 signals** — `src/morse.js` + `src/rtty.js`, encoders WITH decoders,
   exact round-trip tests. Real RTTY framing (Baudot, start/stop bits), not
   random bits. Numbers-station script generator (interval melody, five-digit
   groups, repeat, sign-off) as pure data.
+  (RTTY is real ITA2 now: start + 5 data + 2 stop at 45.45 baud, and each
+  station keys a deterministic tape — `RYRYRY … DE <cs> MSG NR <grp> = …` —
+  off its split rng stream. Numbers scripts moved to `src/numbers.js`, same
+  data the shell used to improvise inline. `makeBand` untouched, pin
+  unchanged.)
 - [ ] **M3 receiver core** — `src/tune.js`: strength vs offset and heterodyne
   beat as pure functions — continuous, beat → 0 at zero-beat, no sign flip.
   `src/audio.js` graph (noise floor, carriers, BFO, poisson crackle) as the
