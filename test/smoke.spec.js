@@ -18,7 +18,13 @@ test('boots clean; POWER wakes an AudioContext', async ({ page }) => {
   await page.goto('/#s=123456');
   await expect(page).toHaveTitle(/SKYWAVE/);
   await expect(page.locator('#pwr')).toBeVisible();
-  await expect(page.locator('#freq')).toContainText('7.1000');
+  // 7-seg readout renders ' 7.1000': six digit cells whose lit segments
+  // decode back to the digits — stricter than the old text assertion
+  await expect(page.locator('#freq .dig')).toHaveCount(6);
+  const masks = await page.$$eval('#freq .dig', ds => ds.map(d =>
+    [...d.children].reduce((m, el, b) => m | (el.classList.contains('on') ? 1 << b : 0), 0)));
+  expect(masks).toEqual([0x00, 0x07, 0x06, 0x3f, 0x3f, 0x3f]); // ⌴ 7 . 1 0 0 0
+  await expect(page.locator('#freq .dp')).toHaveCount(1);
   expect(await page.evaluate(() => window.__acCount)).toBe(0); // silent until gesture
 
   await page.locator('#pwr').click();

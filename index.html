@@ -17,11 +17,18 @@ body{background:#070607;color:var(--dim);font:13px/1.5 "Helvetica Neue",Arial,sa
 #clock{margin-left:auto;font-family:ui-monospace,Consolas,monospace;color:var(--amber);
   text-shadow:0 0 9px #ffb44580;font-size:15px;letter-spacing:2px}
 #main{display:grid;grid-template-columns:190px 1fr 210px;gap:20px;align-items:center;padding:22px 0 8px}
-#lcdbox{background:#0a0806;border:1px solid #000;border-radius:5px;padding:10px 16px;
+#lcdbox{background:#0a0806;border:1px solid #000;border-radius:5px;padding:14px 16px;
   box-shadow:inset 0 4px 14px #000;grid-column:2;text-align:center}
-#freq{font-family:ui-monospace,Consolas,monospace;font-size:42px;letter-spacing:4px;
-  color:var(--amber);text-shadow:0 0 14px #ffb445a0,0 0 3px #ffb445}
-#freq small{font-size:14px;letter-spacing:1px;color:#c98d3a;margin-left:6px}
+#freq{display:inline-flex;align-items:flex-end;gap:8px;transform:skewX(-4deg)}
+#freq small{font-size:14px;letter-spacing:1px;color:#c98d3a;margin-left:4px;transform:skewX(4deg)}
+.dig{position:relative;width:28px;height:50px}
+.dig i{position:absolute;background:#221a0d;border-radius:2px}
+.dig i.on{background:var(--amber);box-shadow:0 0 10px #ffb445b0,0 0 2px #ffb445}
+.sa,.sd,.sg{left:5px;right:5px;height:5px}.sa{top:0}.sg{top:22.5px}.sd{bottom:0}
+.sb,.sc,.se,.sf{width:5px;height:19px}.sb{right:0;top:4px}.sc{right:0;bottom:4px}
+.se{left:0;bottom:4px}.sf{left:0;top:4px}
+.dp{width:5px;height:5px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 8px #ffb445;margin-bottom:1px}
 #meter{width:180px;height:96px;background:#0a0806;border:1px solid #000;border-radius:5px;
   box-shadow:inset 0 4px 14px #000;position:relative;overflow:hidden}
 #meter .arc{position:absolute;left:20px;right:20px;top:16px;height:120px;border:2px solid #3a3428;
@@ -69,7 +76,7 @@ td:first-child{color:var(--amber)}
   <div id="top"><span id="brand">SKYWAVE<small>SW-1 COMMUNICATIONS RECEIVER · 3–30 MC</small></span><span id="clock">····z</span></div>
   <div id="main">
     <div id="meter"><div class="arc"></div><div id="needle"></div><label>SIGNAL</label></div>
-    <div id="lcdbox"><span id="freq">7.1000<small>MHz</small></span></div>
+    <div id="lcdbox"><span id="freq"></span></div>
     <div id="side">
       <div id="siderow">
         <div class="sw" id="pwr"><div class="well"><div class="lever"></div></div><label><span class="led"></span>POWER</label></div>
@@ -91,6 +98,7 @@ td:first-child{color:var(--amber)}
 import{split}from'./src/rng.js';
 import{makeBand,strength,nearest}from'./src/band.js';
 import{clampF,selectivity,beatHz,hetLevel,noiseFloor,audioLevel}from'./src/tune.js';
+import{freqSegs,meterStep,needleDeg,knobAngle,knobDelta}from'./src/panel.js';
 import{createRadio}from'./src/audio.js';
 /* ================= receiver state ================= */
 let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false,curAud=0,meterV=0;
@@ -112,15 +120,24 @@ function boot(){
   if(!hash)location.hash='s='+seed;
   band=makeBand(seed);
   $('foot').textContent='NET '+seed+' — same URL, same band. share it.';
+  // 7-seg readout: six digit cells, fixed dp after the MHz digits
+  const segEls=[],fx=$('freq');
+  for(let i=0;i<6;i++){const d=document.createElement('span');d.className='dig';
+    d.innerHTML='<i class=sa></i><i class=sb></i><i class=sc></i><i class=sd></i><i class=se></i><i class=sf></i><i class=sg></i>';
+    fx.appendChild(d);segEls.push([...d.children]);
+    if(i===1)fx.appendChild(Object.assign(document.createElement('span'),{className:'dp'}))}
+  fx.appendChild(Object.assign(document.createElement('small'),{textContent:'MHz'}));
+  const drawFreq=()=>freqSegs(freqk).forEach((m,i)=>
+    segEls[i].forEach((el,b)=>el.classList.toggle('on',!!(m>>b&1))));
   if(typeof speechSynthesis!=='undefined'){VOICES=speechSynthesis.getVoices();
     speechSynthesis.onvoiceschanged=()=>VOICES=speechSynthesis.getVoices();}
   const setF=f=>{freqk=clampF(f)};
   function knob(el,scale,cb){let ang=0,last=null;
     const angOf=e=>{const r=el.getBoundingClientRect();
-      return Math.atan2(e.clientY-r.top-r.height/2,e.clientX-r.left-r.width/2)*57.2958};
+      return knobAngle(e.clientX,e.clientY,r.left+r.width/2,r.top+r.height/2)};
     el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);last=angOf(e);e.preventDefault()});
     el.addEventListener('pointermove',e=>{if(last===null)return;const a=angOf(e);
-      let d=a-last;if(d>180)d-=360;if(d<-180)d+=360;last=a;ang+=d;
+      const d=knobDelta(last,a);last=a;ang+=d;
       el.style.setProperty('--a',ang+'deg');cb(d*scale)});
     const up=()=>last=null;el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)}
   knob($('dial'),6,d=>setF(freqk+d));           // ~2.2 MHz per turn
@@ -153,7 +170,7 @@ function boot(){
   function frame(){requestAnimationFrame(frame);
     const now=new Date();
     $('clock').textContent=zulu(now);
-    $('freq').innerHTML=(freqk/1000).toFixed(4)+'<small>MHz</small>';
+    drawFreq();
     let s=0,sel=0,st=null,hint='';
     if(pwrOn){
       st=nearest(band,freqk);
@@ -167,9 +184,8 @@ function boot(){
         hint='carrier detected — no audio? switch in the BFO.';
       else hint='tune slowly. the good ones keep schedules (UTC).';
     }else{curAud=0;hint=radio.now()?'':'flip POWER to wake the receiver — then tune.'}
-    const mt=Math.min(1,s*(.3+.7*sel));
-    meterV+=(mt-meterV)*(mt>meterV?.35:.03);                     // ballistic needle
-    $('needle').style.transform='rotate('+(-52+104*meterV)+'deg)';
+    meterV=meterStep(meterV,Math.min(1,s*(.3+.7*sel)));          // ballistic needle
+    $('needle').style.transform='rotate('+needleDeg(meterV)+'deg)';
     $('hint').textContent=hint}
   frame()}
 boot();

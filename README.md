@@ -53,7 +53,8 @@ frequencies carry better at night, high frequencies by day.
 1. `node --test 'test/*.test.js'` — the pure modules in `src/`: seeded rng and
    splitting, band generation, propagation, morse codec and timing, RTTY baudot
    framing round-trips, numbers-station scripts, UTC schedule windows, receiver
-   math (selectivity, heterodyne beat, BFO gate, dial clamp), boundary cases.
+   math (selectivity, heterodyne beat, BFO gate, dial clamp), panel math
+   (7-seg truth table, readout layout, meter ballistics, knob wrap), boundary cases.
 2. `npx playwright test smoke` — headless boot: page loads, zero console
    errors, POWER exists, flipping it creates an AudioContext.
 3. runtime-deps check — `package.json` dependencies must stay empty. Dev deps only.
@@ -96,3 +97,12 @@ Listen checklist:
   little longer, and the static floor swells back up as the signal fades. On a
   morse/RTTY carrier the set stays quiet until the BFO is in. POWER still
   ramps soft both ways, no pop. The dial pins at 3.0000 and 30.0000, no wrap.
+- **M4** — look as well as listen. The readout is real seven-segment: unlit
+  ghost segments faintly visible behind the lit amber ones, decimal point
+  fixed after the MHz digits, leading digit blank below 10 MHz (`⌴7.1000`,
+  not `07.1000`). Every 100 Hz Shift-step flicks exactly the last digit. Drag
+  any knob in full circles, both directions, crossing the pointer's own
+  "6 o'clock" — motion stays smooth, no jump when the drag crosses ±180°.
+  Land on a strong carrier: the needle kicks up fast; tune off: it falls back
+  slow, visibly slower than it rose. Panel stays matte black, one amber glow —
+  the only light is the readout, LEDs, needle, and knob markers.
