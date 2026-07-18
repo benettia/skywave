@@ -1,12 +1,13 @@
 # SKYWAVE
 
-A shortwave radio simulator in a single HTML file. A fictional band from 3 to 30 MHz,
-~40 procedurally generated stations, every sound synthesized with WebAudio at runtime —
-no samples, no assets, no network, no dependencies, no build.
+A shortwave radio simulator: one `index.html` plus a few pure ES modules. A fictional
+band from 3 to 30 MHz, ~40 procedurally generated stations, every sound synthesized
+with WebAudio at runtime — no samples, no assets, no network, no dependencies, no build.
 
 The target feeling: 3am, headphones, hunting a numbers station through the static.
 
-**[Listen →](https://benettia.github.io/skywave/)** — or just open `index.html` from disk.
+**[Listen →](https://benettia.github.io/skywave/)** — or serve it locally (ES modules
+need http, not file://): `python3 -m http.server 8080`, open <http://localhost:8080>.
 Flip **POWER** (browsers require a gesture before audio), put on headphones, tune slowly.
 
 ## The band
@@ -49,8 +50,9 @@ frequencies carry better at night, high frequencies by day.
 
 `./check.sh` is the merge gate (this is what CI runs). It is exactly:
 
-1. `node --test 'test/*.test.js'` — the deterministic core: band generation,
-   morse codec and timing, UTC schedule windows, boundary cases.
+1. `node --test 'test/*.test.js'` — the pure modules in `src/`: seeded rng and
+   splitting, band generation, propagation, morse codec and timing, UTC schedule
+   windows, boundary cases.
 2. `npx playwright test smoke` — headless boot: page loads, zero console
    errors, POWER exists, flipping it creates an AudioContext.
 3. runtime-deps check — `package.json` dependencies must stay empty. Dev deps only.
@@ -58,7 +60,6 @@ frequencies carry better at night, high frequencies by day.
    Changed the generator on purpose? Update the pin in the same commit and say so.
 
 Setup once: `npm install` (pulls the one dev dep, playwright).
-The in-page harness still works too: open [`index.html?test`](https://benettia.github.io/skywave/?test).
 
 ## The listen loop — ears are a feedback channel, not a gate
 
@@ -78,3 +79,6 @@ Listen checklist:
 - **M0** — page boots silent. Flip POWER: static floor fades in with a soft
   ramp, no pop or click. Occasional crackle ticks. Flip it off: audio ramps
   down clean.
+- **M1** — pure extraction; nothing may sound different. Open `#s=123456`,
+  note three station frequencies and what they are; reload, same three, same
+  sounds. A morse beacon still decodes to `VVV DE <callsign> ...` by ear.
