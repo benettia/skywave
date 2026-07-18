@@ -36,8 +36,14 @@ into pure `src/` modules with real tests, closing spec gaps as they go.
   the whole audio graph moved into `src/audio.js` behind a five-call surface —
   power / retune / apply / setVol / now. index.html now only owns panel state
   and pushes tune.js outputs into the graph each frame. Pin unchanged.)
-- [ ] **M4 the panel** — dial + fine tune, 7-seg readout, ballistic meter, BFO
+- [x] **M4 the panel** — dial + fine tune, 7-seg readout, ballistic meter, BFO
   toggle, volume. Matte black, one amber glow. Cold-war equipment, not a synth
   plugin. UI-only changes still survive the smoke.
+  (The panel hardware existed since the monolith; M4 made the readout true
+  seven-segment — six digit cells, ghost segments, blanked leading zero, fixed
+  dp — and pulled the decidable panel math into pure `src/panel.js`: the SEG
+  truth table, readout layout, meter attack/decay, knob angle + wrap-seam
+  delta. The shell renders masks; the numbers live under `node --test` now.
+  Pin unchanged.)
 - [ ] **M5 the logbook** — log button (freq/UTC/id/note), table, plain-text
   DX-log export, seed in URL hash.
