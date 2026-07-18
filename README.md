@@ -51,8 +51,9 @@ frequencies carry better at night, high frequencies by day.
 `./check.sh` is the merge gate (this is what CI runs). It is exactly:
 
 1. `node --test 'test/*.test.js'` — the pure modules in `src/`: seeded rng and
-   splitting, band generation, propagation, morse codec and timing, UTC schedule
-   windows, boundary cases.
+   splitting, band generation, propagation, morse codec and timing, RTTY baudot
+   framing round-trips, numbers-station scripts, UTC schedule windows, boundary
+   cases.
 2. `npx playwright test smoke` — headless boot: page loads, zero console
    errors, POWER exists, flipping it creates an AudioContext.
 3. runtime-deps check — `package.json` dependencies must stay empty. Dev deps only.
@@ -82,3 +83,9 @@ Listen checklist:
 - **M1** — pure extraction; nothing may sound different. Open `#s=123456`,
   note three station frequencies and what they are; reload, same three, same
   sounds. A morse beacon still decodes to `VVV DE <callsign> ...` by ear.
+- **M2** — park on an RTTY station with the BFO in: the warble now has
+  structure — a steady even chatter (that's `RYRYRY`, the alternating test
+  pair), pauses on a held high tone between repeats, and the same station
+  always keys the same tape. Reload: same tape. A numbers station still runs
+  melody → six groups of five → the same six again → three falling tones;
+  the beep-fallback digits step audibly in pitch (higher digit, higher pair).
