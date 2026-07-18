@@ -90,126 +90,20 @@ td:first-child{color:var(--amber)}
 <script type="module">
 import{split}from'./src/rng.js';
 import{makeBand,strength,nearest}from'./src/band.js';
-import{morseEncode,morseTiming}from'./src/morse.js';
-import{rttyEncode,rttyText,freqOf,UNIT,MARK_HZ}from'./src/rtty.js';
-import{intervalMelody,numbersScript,beepFreqs,SIGNOFF_HZ}from'./src/numbers.js';
+import{clampF,selectivity,beatHz,hetLevel,noiseFloor,audioLevel}from'./src/tune.js';
+import{createRadio}from'./src/audio.js';
 /* ================= receiver state ================= */
-let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false;
-let ctx=null,master,bus,noiseG,crackG,hetOsc,hetG,act=null,curAud=0,meterV=0;
+let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false,curAud=0,meterV=0;
 let VOICES=[];
 const NAMES={n:'numbers stn',m:'morse beacon',r:'rtty/data',c:'broadcast'};
-const srng=st=>split(seed,Math.round(st.f*10));
-/* ================= audio graph ================= */
-function tone(dest,type,f,t,dur,peak){const o=ctx.createOscillator(),g=ctx.createGain();
-  o.type=type;o.frequency.value=f;o.connect(g);g.connect(dest);
-  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(peak,t+.02);
-  g.gain.setTargetAtTime(0,t+dur*.6,dur*.25);o.start(t);o.stop(t+dur+1)}
-function chainBase(st){const g=ctx.createGain();g.gain.value=0;g.connect(bus);
-  const c={st,g,tm:[],osc:[],dead:false};
-  c.stop=()=>{c.dead=true;c.tm.forEach(clearTimeout);
-    c.osc.forEach(o=>{try{o.stop()}catch(e){}});
-    setTimeout(()=>{try{g.disconnect()}catch(e){}},100);
-    if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();};
-  return c}
-function buildMorse(st){const c=chainBase(st);
-  const o=ctx.createOscillator();o.type='sine';o.frequency.value=600;
-  const kg=ctx.createGain();kg.gain.value=0;o.connect(kg);kg.connect(c.g);o.start();c.osc.push(o);
-  const seq=morseTiming(morseEncode(st.msg)),u=.09;let next=0;
-  (function loop(){if(c.dead)return;let t=Math.max(next,ctx.currentTime+.1);
-    for(const[on,off]of seq){kg.gain.setTargetAtTime(.8,t,.004);
-      kg.gain.setTargetAtTime(0,t+on*u,.004);t+=(on+off)*u}
-    next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
-  return c}
-function buildRtty(st){const c=chainBase(st);
-  const o=ctx.createOscillator();o.type='sine';o.frequency.value=MARK_HZ;
-  const kg=ctx.createGain();kg.gain.value=.55;o.connect(kg);kg.connect(c.g);o.start();c.osc.push(o);
-  const bits=rttyEncode(rttyText(srng(st)));let next=0;  // the station repeats its tape
-  (function loop(){if(c.dead)return;let t=Math.max(next,ctx.currentTime+.1);
-    for(const b of bits){o.frequency.setValueAtTime(freqOf(b),t);t+=UNIT}
-    o.frequency.setValueAtTime(MARK_HZ,t);t+=UNIT*32;    // idle on mark between repeats
-    next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
-  return c}
-function buildCarrier(st){const c=chainBase(st);
-  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1100;
-  const mg=ctx.createGain();mg.gain.value=.5;lp.connect(mg);mg.connect(c.g);
-  const rs=srng(st),pent=[0,2,4,7,9,12];let next=0;
-  (function loop(){if(c.dead)return;let t=Math.max(next,ctx.currentTime+.1);
-    for(let i=0;i<12;i++){if(rs()<.18){t+=.5;continue}
-      const f=196*Math.pow(2,(pent[(rs()*6)|0]+(rs()<.3?12:0))/12);
-      tone(lp,'triangle',f,t,.55,.5);t+=.42+.21*((rs()*2)|0)}
-    next=t;c.tm.push(setTimeout(loop,Math.max(200,(t-ctx.currentTime-2)*1000)))})();
-  return c}
-function buildNumbers(st){const c=chainBase(st);const rs=srng(st);
-  const tune=intervalMelody(rs);
-  const sched=(fn,ms)=>{if(!c.dead)c.tm.push(setTimeout(fn,ms))};
-  function melody(t0){let t=t0;
-    for(let k=0;k<2;k++){for(const n of tune){
-      for(const[ty,det,pk]of[['sine',0,.4],['triangle',3,.12]]){
-        const o=ctx.createOscillator(),og=ctx.createGain();o.type=ty;
-        o.frequency.value=880*Math.pow(2,n/12)+det;o.connect(og);og.connect(c.g);
-        og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(pk,t+.008);
-        og.gain.setTargetAtTime(0,t+.03,.22);o.start(t);o.stop(t+1.2)}
-      t+=.42}t+=.6}
-    return t+.5}
-  function beeps(digits,done){let t=ctx.currentTime+.05;   // two-tone fallback
-    for(const d of digits){const[lo,hi]=beepFreqs(d);
-      tone(c.g,'sine',lo,t,.09,.5);tone(c.g,'sine',hi,t+.1,.09,.5);t+=.32}
-    sched(done,(t-ctx.currentTime)*1000+250)}
-  function speak(list,i){if(c.dead)return;
-    if(i>=list.length)return phaseOff();
-    const voice=pickVoice(st);
-    if(!voice)return beeps(list[i].split('').map(Number),()=>speak(list,i+1));
-    if(curAud<.08)return sched(()=>speak(list,i+1),2800); // too weak / detuned: lost in noise
-    const u=new SpeechSynthesisUtterance(list[i].split('').join(' '));
-    u.voice=voice;u.lang=voice.lang;u.rate=.72;u.pitch=.85;
-    u.volume=Math.min(1,curAud*1.6*vol*(st.jam?.55:1));
-    let fired=false;const nx=()=>{if(!fired){fired=true;sched(()=>speak(list,i+1),400)}};
-    u.onend=nx;u.onerror=nx;sched(nx,6000);speechSynthesis.speak(u)}
-  function phaseMelody(){if(c.dead)return;const end=melody(ctx.currentTime+.1);
-    sched(phaseDigits,(end-ctx.currentTime)*1000+300)}
-  function phaseDigits(){if(c.dead)return;speak(numbersScript(rs).spoken,0)}
-  function phaseOff(){if(c.dead)return;let t=ctx.currentTime+.4;
-    for(const f of SIGNOFF_HZ)tone(c.g,'sine',f,t,.28,.5),t+=.42;
-    sched(phaseMelody,(t-ctx.currentTime)*1000+2200)}
-  phaseMelody();
-  if(st.jam){ // jammer parked on this frequency — harsh swept buzz
-    const bp=ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=1.2;
-    const jg=ctx.createGain();jg.gain.value=.5;bp.connect(jg);jg.connect(c.g);
-    for(const f of[88,88.9]){const o=ctx.createOscillator();o.type='sawtooth';
-      o.frequency.value=f;o.connect(bp);o.start();c.osc.push(o)}
-    const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=.31;
-    lg.gain.value=420;lfo.connect(lg);lg.connect(bp.frequency);lfo.start();c.osc.push(lfo)}
-  return c}
-const BUILD={n:buildNumbers,m:buildMorse,r:buildRtty,c:buildCarrier};
 function pickVoice(st){if(typeof speechSynthesis==='undefined'||!VOICES.length)return null;
   const alt=VOICES.filter(v=>!/^en/i.test(v.lang)),pool=alt.length?alt:VOICES;
   return pool[(st.vs*pool.length)|0]}
-function initAudio(){ctx=new AudioContext();
-  master=ctx.createGain();master.gain.value=0;master.connect(ctx.destination);
-  const hp=ctx.createBiquadFilter();hp.type='highpass';hp.frequency.value=300;
-  const lp=ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3200;
-  bus=hp;hp.connect(lp);lp.connect(master);
-  const len=2*ctx.sampleRate,buf=ctx.createBuffer(1,len,ctx.sampleRate),ch=buf.getChannelData(0);
-  for(let i=0;i<len;i++)ch[i]=Math.random()*2-1;
-  const nsrc=ctx.createBufferSource();nsrc.buffer=buf;nsrc.loop=true;
-  noiseG=ctx.createGain();noiseG.gain.value=.1;nsrc.connect(noiseG);noiseG.connect(bus);nsrc.start();
-  const csrc=ctx.createBufferSource();csrc.buffer=buf;csrc.loop=true;csrc.playbackRate.value=1.7;
-  crackG=ctx.createGain();crackG.gain.value=0;csrc.connect(crackG);crackG.connect(bus);csrc.start();
-  hetOsc=ctx.createOscillator();hetOsc.type='sine';hetOsc.frequency.value=1;
-  hetG=ctx.createGain();hetG.gain.value=0;hetOsc.connect(hetG);hetG.connect(bus);hetOsc.start();
-  (function crackle(){if(pwrOn){const t=ctx.currentTime,a=.1+Math.random()*.5;
-      crackG.gain.setValueAtTime(0,t);crackG.gain.linearRampToValueAtTime(a,t+.004);
-      crackG.gain.setTargetAtTime(0,t+.01,.02)}
-    setTimeout(crackle,250+Math.random()*4800)})()}
-function power(on){pwrOn=on;
-  if(on){if(!ctx)initAudio();ctx.resume();
-    master.gain.setTargetAtTime(vol,ctx.currentTime,.3)}       // soft ramp, no pop
-  else if(ctx){master.gain.setTargetAtTime(0,ctx.currentTime,.15);
-    if(typeof speechSynthesis!=='undefined')speechSynthesis.cancel();
-    setTimeout(()=>{if(!pwrOn)ctx.suspend()},800)}}
-function switchTo(st){if(act){const old=act;
-    old.g.gain.setTargetAtTime(0,ctx.currentTime,.04);setTimeout(()=>old.stop(),300);act=null}
-  if(st)act=BUILD[st.ty](st)}
+const radio=createRadio({
+  srng:st=>split(seed,Math.round(st.f*10)),
+  voiceFor:pickVoice,
+  speechVol:st=>Math.min(1,curAud*1.6*vol*(st.jam?.55:1)),
+  audible:()=>curAud>=.08});
 /* ================= UI ================= */
 function boot(){
   const $=id=>document.getElementById(id);
@@ -220,7 +114,7 @@ function boot(){
   $('foot').textContent='NET '+seed+' — same URL, same band. share it.';
   if(typeof speechSynthesis!=='undefined'){VOICES=speechSynthesis.getVoices();
     speechSynthesis.onvoiceschanged=()=>VOICES=speechSynthesis.getVoices();}
-  const setF=f=>{freqk=Math.min(30000,Math.max(3000,f))};
+  const setF=f=>{freqk=clampF(f)};
   function knob(el,scale,cb){let ang=0,last=null;
     const angOf=e=>{const r=el.getBoundingClientRect();
       return Math.atan2(e.clientY-r.top-r.height/2,e.clientX-r.left-r.width/2)*57.2958};
@@ -232,19 +126,19 @@ function boot(){
   knob($('dial'),6,d=>setF(freqk+d));           // ~2.2 MHz per turn
   knob($('fine'),.03,d=>setF(freqk+d));         // ~11 kHz per turn
   knob($('vol'),.003,d=>{vol=Math.min(1,Math.max(0,vol+d));
-    if(ctx&&pwrOn)master.gain.setTargetAtTime(vol,ctx.currentTime,.05)});
+    if(pwrOn)radio.setVol(vol)});
   $('panel').addEventListener('wheel',e=>{e.preventDefault();
     setF(freqk+(e.deltaY>0?-1:1)*(e.shiftKey?.1:5))},{passive:false});
   addEventListener('keydown',e=>{const s=e.shiftKey?.1:1;
     if(e.key==='ArrowRight')setF(freqk+s);else if(e.key==='ArrowLeft')setF(freqk-s);
     else if(e.key==='PageUp')setF(freqk+100);else if(e.key==='PageDown')setF(freqk-100)});
   $('pwr').addEventListener('click',()=>{$('pwr').classList.toggle('on');
-    power($('pwr').classList.contains('on'))});
+    pwrOn=$('pwr').classList.contains('on');radio.power(pwrOn,vol)});
   $('bfo').addEventListener('click',()=>{bfoOn=!bfoOn;$('bfo').classList.toggle('on',bfoOn)});
   const logs=[];
   $('logbtn').addEventListener('click',()=>{const now=new Date(),st=nearest(band,freqk);
-    const t=ctx?ctx.currentTime:0;
-    const id=st&&strength(st,now,t)*selOf(st)>.18?NAMES[st.ty]+(st.jam?' + jammer':''):'unid';
+    const id=st&&strength(st,now,radio.now())*selectivity(st.f-freqk)>.18
+      ?NAMES[st.ty]+(st.jam?' + jammer':''):'unid';
     logs.push({z:zulu(now),f:(freqk/1000).toFixed(4),id,note:$('note').value.trim()});
     $('note').value='';
     $('logtbl').innerHTML=logs.map(l=>'<tr><td>'+l.z+'</td><td>'+l.f+' MHz</td><td>'+l.id
@@ -255,28 +149,24 @@ function boot(){
     a.download='skywave-log.txt';a.click();URL.revokeObjectURL(a.href)});
   const esc=s=>s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
   const zulu=d=>String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'z';
-  const selOf=st=>{const s=Math.max(0,1-Math.abs(st.f-freqk)/4);return s*s};
-  /* -------- main loop -------- */
+  /* -------- main loop: pure tune.js outputs pushed into the graph -------- */
   function frame(){requestAnimationFrame(frame);
     const now=new Date();
     $('clock').textContent=zulu(now);
     $('freq').innerHTML=(freqk/1000).toFixed(4)+'<small>MHz</small>';
     let s=0,sel=0,st=null,hint='';
-    if(ctx&&pwrOn){const t=ctx.currentTime;
+    if(pwrOn){
       st=nearest(band,freqk);
-      if(st!==(act&&act.st))switchTo(st);
-      if(st){s=strength(st,now,t);sel=selOf(st)}
+      if(st!==radio.station())radio.retune(st);
+      if(st){s=strength(st,now,radio.now());sel=selectivity(st.f-freqk)}
       const aud=s*sel;curAud=aud;
-      const beat=Math.abs(st?st.f-freqk:0)*1000;                 // heterodyne: kHz off → Hz
-      hetOsc.frequency.setTargetAtTime(Math.max(beat,.01),t,.02); // continuous glide
-      hetG.gain.setTargetAtTime(s*.28*Math.max(0,1-beat/3800),t,.05);
-      noiseG.gain.setTargetAtTime(.11*(1-.82*aud),t,.08);
-      if(act)act.g.gain.setTargetAtTime(
-        (st.ty==='m'||st.ty==='r')?(bfoOn?aud*.9:0):aud*.9,t,.06);
-      if(st&&(st.ty==='m'||st.ty==='r')&&!bfoOn&&s*sel>.1)
+      const beat=beatHz(st?st.f-freqk:0);
+      radio.apply({beat,het:hetLevel(s,beat),noise:noiseFloor(aud),
+        level:st?audioLevel(st.ty,aud,bfoOn):0});
+      if(st&&(st.ty==='m'||st.ty==='r')&&!bfoOn&&aud>.1)
         hint='carrier detected — no audio? switch in the BFO.';
       else hint='tune slowly. the good ones keep schedules (UTC).';
-    }else{curAud=0;hint=ctx?'':'flip POWER to wake the receiver — then tune.'}
+    }else{curAud=0;hint=radio.now()?'':'flip POWER to wake the receiver — then tune.'}
     const mt=Math.min(1,s*(.3+.7*sel));
     meterV+=(mt-meterV)*(mt>meterV?.35:.03);                     // ballistic needle
     $('needle').style.transform='rotate('+(-52+104*meterV)+'deg)';

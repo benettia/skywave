@@ -52,8 +52,8 @@ frequencies carry better at night, high frequencies by day.
 
 1. `node --test 'test/*.test.js'` — the pure modules in `src/`: seeded rng and
    splitting, band generation, propagation, morse codec and timing, RTTY baudot
-   framing round-trips, numbers-station scripts, UTC schedule windows, boundary
-   cases.
+   framing round-trips, numbers-station scripts, UTC schedule windows, receiver
+   math (selectivity, heterodyne beat, BFO gate, dial clamp), boundary cases.
 2. `npx playwright test smoke` — headless boot: page loads, zero console
    errors, POWER exists, flipping it creates an AudioContext.
 3. runtime-deps check — `package.json` dependencies must stay empty. Dev deps only.
@@ -89,3 +89,10 @@ Listen checklist:
   always keys the same tape. Reload: same tape. A numbers station still runs
   melody → six groups of five → the same six again → three falling tones;
   the beep-fallback digits step audibly in pitch (higher digit, higher pair).
+- **M3** — pure extraction; nothing may sound different. Tune slowly through
+  a carrier with FINE or Shift+wheel: the whistle glides to zero-beat and back
+  up — continuous, no steps, no clicks, and the pitch never "bounces" off zero.
+  Drift off-tune: station audio dies by ~4 kHz while the whistle hangs on a
+  little longer, and the static floor swells back up as the signal fades. On a
+  morse/RTTY carrier the set stays quiet until the BFO is in. POWER still
+  ramps soft both ways, no pop. The dial pins at 3.0000 and 30.0000, no wrap.
