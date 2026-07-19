@@ -55,7 +55,10 @@ frequencies carry better at night, high frequencies by day.
    framing round-trips, numbers-station scripts, UTC schedule windows, receiver
    math (selectivity, heterodyne beat, BFO gate, dial clamp), panel math
    (7-seg truth table, readout layout, meter ballistics, knob wrap), logbook
-   (id honesty rule, zulu clock, DX-log text, seed-in-hash), boundary cases.
+   (id honesty rule, zulu clock, DX-log text, seed-in-hash), boundary cases,
+   and deploy completeness — every file `index.html` transitively imports must
+   be covered by the gh-pages copy list in `ci.yml`, so a refactor can't ship
+   a live site with 404ing modules again.
 2. `npx playwright test smoke` — headless boot: page loads, zero console
    errors, POWER exists, flipping it creates an AudioContext.
 3. runtime-deps check — `package.json` dependencies must stay empty. Dev deps only.
