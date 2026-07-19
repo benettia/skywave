@@ -33,6 +33,7 @@ jobs:
         run: |
           mkdir -p /tmp/site
           cp index.html /tmp/site/
+          cp -r src /tmp/site/src
           touch /tmp/site/.nojekyll
           cd /tmp/site
           git init -q -b gh-pages
