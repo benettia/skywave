@@ -45,5 +45,11 @@ into pure `src/` modules with real tests, closing spec gaps as they go.
   truth table, readout layout, meter attack/decay, knob angle + wrap-seam
   delta. The shell renders masks; the numbers live under `node --test` now.
   Pin unchanged.)
-- [ ] **M5 the logbook** — log button (freq/UTC/id/note), table, plain-text
+- [x] **M5 the logbook** — log button (freq/UTC/id/note), table, plain-text
   DX-log export, seed in URL hash.
+  (The hardware existed since the monolith; M5 pulled the decidable half into
+  pure `src/logbook.js`: the .18 id-honesty threshold, zulu/zdate, entry shape,
+  escaped table rows newest-first, DX-log text, and seed-in-hash parsing — all
+  pinned byte-exact under `node --test`. The export grew a `NET <seed>` header
+  and UTC dates per line; the shell keeps only the DOM and the Blob download.
+  Pin unchanged.)

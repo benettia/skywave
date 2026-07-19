@@ -99,11 +99,11 @@ import{split}from'./src/rng.js';
 import{makeBand,strength,nearest}from'./src/band.js';
 import{clampF,selectivity,beatHz,hetLevel,noiseFloor,audioLevel}from'./src/tune.js';
 import{freqSegs,meterStep,needleDeg,knobAngle,knobDelta}from'./src/panel.js';
+import{claimId,zulu,makeEntry,tableHtml,exportText,parseSeed}from'./src/logbook.js';
 import{createRadio}from'./src/audio.js';
 /* ================= receiver state ================= */
 let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false,curAud=0,meterV=0;
 let VOICES=[];
-const NAMES={n:'numbers stn',m:'morse beacon',r:'rtty/data',c:'broadcast'};
 function pickVoice(st){if(typeof speechSynthesis==='undefined'||!VOICES.length)return null;
   const alt=VOICES.filter(v=>!/^en/i.test(v.lang)),pool=alt.length?alt:VOICES;
   return pool[(st.vs*pool.length)|0]}
@@ -115,9 +115,9 @@ const radio=createRadio({
 /* ================= UI ================= */
 function boot(){
   const $=id=>document.getElementById(id);
-  const hash=location.hash.match(/s=(\d+)/);
-  seed=hash?+hash[1]:(Math.random()*1e9)|0;
-  if(!hash)location.hash='s='+seed;
+  const hs=parseSeed(location.hash);
+  seed=hs??(Math.random()*1e9)|0;
+  if(hs===null)location.hash='s='+seed;
   band=makeBand(seed);
   $('foot').textContent='NET '+seed+' — same URL, same band. share it.';
   // 7-seg readout: six digit cells, fixed dp after the MHz digits
@@ -154,18 +154,14 @@ function boot(){
   $('bfo').addEventListener('click',()=>{bfoOn=!bfoOn;$('bfo').classList.toggle('on',bfoOn)});
   const logs=[];
   $('logbtn').addEventListener('click',()=>{const now=new Date(),st=nearest(band,freqk);
-    const id=st&&strength(st,now,radio.now())*selectivity(st.f-freqk)>.18
-      ?NAMES[st.ty]+(st.jam?' + jammer':''):'unid';
-    logs.push({z:zulu(now),f:(freqk/1000).toFixed(4),id,note:$('note').value.trim()});
+    const aud=st?strength(st,now,radio.now())*selectivity(st.f-freqk):0;
+    logs.push(makeEntry(freqk,now,claimId(st,aud),$('note').value));
     $('note').value='';
-    $('logtbl').innerHTML=logs.map(l=>'<tr><td>'+l.z+'</td><td>'+l.f+' MHz</td><td>'+l.id
-      +'</td><td>'+esc(l.note)+'</td></tr>').reverse().join('')});
+    $('logtbl').innerHTML=tableHtml(logs)});
   $('expbtn').addEventListener('click',()=>{if(!logs.length)return;
-    const txt=logs.map(l=>l.z+' '+l.f+' MHz — '+[l.id,l.note].filter(Boolean).join(', ')).join('\n');
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([exportText(logs,seed)],{type:'text/plain'}));
     a.download='skywave-log.txt';a.click();URL.revokeObjectURL(a.href)});
-  const esc=s=>s.replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
-  const zulu=d=>String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+'z';
   /* -------- main loop: pure tune.js outputs pushed into the graph -------- */
   function frame(){requestAnimationFrame(frame);
     const now=new Date();
