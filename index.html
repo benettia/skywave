@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SKYWAVE SW-1</title>
+<style>
+:root{--amber:#ffb445;--dim:#6e6558;--panel:#151316;--line:#2a2622}
+*{box-sizing:border-box;margin:0;user-select:none}
+body{background:#070607;color:var(--dim);font:13px/1.5 "Helvetica Neue",Arial,sans-serif;
+  display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:24px 8px}
+#panel{width:880px;max-width:100%;background:linear-gradient(#18161a,#121014);
+  border:1px solid var(--line);border-radius:10px;padding:22px 26px;
+  box-shadow:0 24px 60px #000,inset 0 1px 0 #ffffff12}
+#top{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:12px}
+#brand{color:#b8b0a4;font-size:17px;letter-spacing:5px;font-weight:700}
+#brand small{color:var(--dim);font-size:9px;letter-spacing:2px;font-weight:400;margin-left:10px}
+#clock{margin-left:auto;font-family:ui-monospace,Consolas,monospace;color:var(--amber);
+  text-shadow:0 0 9px #ffb44580;font-size:15px;letter-spacing:2px}
+#main{display:grid;grid-template-columns:190px 1fr 210px;gap:20px;align-items:center;padding:22px 0 8px}
+#lcdbox{background:#0a0806;border:1px solid #000;border-radius:5px;padding:14px 16px;
+  box-shadow:inset 0 4px 14px #000;grid-column:2;text-align:center}
+#freq{display:inline-flex;align-items:flex-end;gap:8px;transform:skewX(-4deg)}
+#freq small{font-size:14px;letter-spacing:1px;color:#c98d3a;margin-left:4px;transform:skewX(4deg)}
+.dig{position:relative;width:28px;height:50px}
+.dig i{position:absolute;background:#221a0d;border-radius:2px}
+.dig i.on{background:var(--amber);box-shadow:0 0 10px #ffb445b0,0 0 2px #ffb445}
+.sa,.sd,.sg{left:5px;right:5px;height:5px}.sa{top:0}.sg{top:22.5px}.sd{bottom:0}
+.sb,.sc,.se,.sf{width:5px;height:19px}.sb{right:0;top:4px}.sc{right:0;bottom:4px}
+.se{left:0;bottom:4px}.sf{left:0;top:4px}
+.dp{width:5px;height:5px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 8px #ffb445;margin-bottom:1px}
+#meter{width:180px;height:96px;background:#0a0806;border:1px solid #000;border-radius:5px;
+  box-shadow:inset 0 4px 14px #000;position:relative;overflow:hidden}
+#meter .arc{position:absolute;left:20px;right:20px;top:16px;height:120px;border:2px solid #3a3428;
+  border-radius:50%;border-bottom-color:transparent;border-left-color:transparent;border-right-color:transparent}
+#needle{position:absolute;left:50%;bottom:-8px;width:2px;height:78px;background:var(--amber);
+  box-shadow:0 0 8px #ffb445;transform-origin:50% 100%;transition:none}
+#meter label{position:absolute;bottom:4px;width:100%;text-align:center;font-size:9px;letter-spacing:3px}
+.kwrap{text-align:center}
+.kwrap label{display:block;font-size:9px;letter-spacing:3px;margin-top:8px}
+.knob{border-radius:50%;margin:0 auto;cursor:grab;position:relative;touch-action:none;
+  background:radial-gradient(circle at 38% 32%,#2e2b33,#141216 70%);
+  border:1px solid #000;box-shadow:0 5px 14px #000,inset 0 1px 0 #ffffff20}
+.knob:active{cursor:grabbing}
+.knob::before{content:"";position:absolute;left:50%;top:7%;width:3px;height:26%;margin-left:-1.5px;
+  background:var(--amber);border-radius:2px;box-shadow:0 0 6px #ffb44590;
+  transform:rotate(var(--a,0deg));transform-origin:50% 165.4%}
+#dial{width:170px;height:170px}
+.small{width:62px;height:62px}
+#side{display:flex;flex-direction:column;gap:14px;align-items:center}
+#siderow{display:flex;gap:22px}
+.sw{cursor:pointer;text-align:center}
+.sw .well{width:34px;height:58px;margin:0 auto;background:#0a0806;border-radius:4px;border:1px solid #000;
+  box-shadow:inset 0 3px 8px #000;position:relative}
+.sw .lever{position:absolute;left:4px;right:4px;top:31px;height:22px;border-radius:3px;
+  background:linear-gradient(#3c3841,#1c1a20);box-shadow:0 2px 4px #000;transition:top .12s}
+.sw.on .lever{top:5px;background:linear-gradient(#4a4436,#2a2620)}
+.sw .led{display:inline-block;width:7px;height:7px;border-radius:50%;background:#241d10;margin-right:5px;vertical-align:1px}
+.sw.on .led{background:var(--amber);box-shadow:0 0 8px #ffb445}
+.sw label{display:block;font-size:9px;letter-spacing:3px;margin-top:7px;cursor:pointer}
+#hint{min-height:20px;text-align:center;font-size:11px;letter-spacing:1px;color:#8a7d5f;padding:6px 0}
+#logbar{display:flex;gap:10px;border-top:1px solid var(--line);padding-top:14px}
+#note{flex:1;background:#0a0806;border:1px solid #000;border-radius:4px;color:#cfc6b8;
+  padding:8px 12px;font:12px ui-monospace,Consolas,monospace;box-shadow:inset 0 2px 8px #000;outline:none}
+button{background:linear-gradient(#2c2930,#1a181d);color:#b8b0a4;border:1px solid #000;
+  border-radius:4px;padding:8px 18px;font:11px/1 inherit;letter-spacing:3px;cursor:pointer;
+  box-shadow:0 3px 8px #0009,inset 0 1px 0 #ffffff18}
+button:active{transform:translateY(1px)}
+#logwrap{max-height:170px;overflow-y:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font:11px ui-monospace,Consolas,monospace;color:#a99}
+td{padding:4px 10px;border-bottom:1px solid #1e1b1e;color:#9a8f7d}
+td:first-child{color:var(--amber)}
+#foot{margin-top:14px;font-size:10px;letter-spacing:1px;text-align:center;color:#4d463d}
+</style></head><body>
+<div id="panel">
+  <div id="top"><span id="brand">SKYWAVE<small>SW-1 COMMUNICATIONS RECEIVER · 3–30 MC</small></span><span id="clock">····z</span></div>
+  <div id="main">
+    <div id="meter"><div class="arc"></div><div id="needle"></div><label>SIGNAL</label></div>
+    <div id="lcdbox"><span id="freq"></span></div>
+    <div id="side">
+      <div id="siderow">
+        <div class="sw" id="pwr"><div class="well"><div class="lever"></div></div><label><span class="led"></span>POWER</label></div>
+        <div class="sw" id="bfo"><div class="well"><div class="lever"></div></div><label><span class="led"></span>BFO</label></div>
+      </div>
+      <div id="siderow">
+        <div class="kwrap"><div class="knob small" id="fine"></div><label>FINE</label></div>
+        <div class="kwrap"><div class="knob small" id="vol"></div><label>AF GAIN</label></div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;padding:4px 0 18px"><div class="kwrap"><div class="knob" id="dial"></div><label>TUNING</label></div></div>
+  <div id="hint"></div>
+  <div id="logbar"><input id="note" placeholder="note — what do you hear?" maxlength="80"><button id="logbtn">LOG</button><button id="expbtn">EXPORT</button></div>
+  <div id="logwrap"><table id="logtbl"></table></div>
+  <div id="foot"></div>
+</div>
+<script type="module">
+import{split}from'./src/rng.js';
+import{makeBand,strength,nearest}from'./src/band.js';
+import{clampF,selectivity,beatHz,hetLevel,noiseFloor,audioLevel}from'./src/tune.js';
+import{freqSegs,meterStep,needleDeg,knobAngle,knobDelta}from'./src/panel.js';
+import{claimId,zulu,makeEntry,tableHtml,exportText,parseSeed}from'./src/logbook.js';
+import{createRadio}from'./src/audio.js';
+/* ================= receiver state ================= */
+let seed,band,freqk=7100,vol=.8,bfoOn=false,pwrOn=false,curAud=0,meterV=0;
+let VOICES=[];
+function pickVoice(st){if(typeof speechSynthesis==='undefined'||!VOICES.length)return null;
+  const alt=VOICES.filter(v=>!/^en/i.test(v.lang)),pool=alt.length?alt:VOICES;
+  return pool[(st.vs*pool.length)|0]}
+const radio=createRadio({
+  srng:st=>split(seed,Math.round(st.f*10)),
+  voiceFor:pickVoice,
+  speechVol:st=>Math.min(1,curAud*1.6*vol*(st.jam?.55:1)),
+  audible:()=>curAud>=.08});
+/* ================= UI ================= */
+function boot(){
+  const $=id=>document.getElementById(id);
+  const hs=parseSeed(location.hash);
+  seed=hs??(Math.random()*1e9)|0;
+  if(hs===null)location.hash='s='+seed;
+  band=makeBand(seed);
+  $('foot').textContent='NET '+seed+' — same URL, same band. share it.';
+  // 7-seg readout: six digit cells, fixed dp after the MHz digits
+  const segEls=[],fx=$('freq');
+  for(let i=0;i<6;i++){const d=document.createElement('span');d.className='dig';
+    d.innerHTML='<i class=sa></i><i class=sb></i><i class=sc></i><i class=sd></i><i class=se></i><i class=sf></i><i class=sg></i>';
+    fx.appendChild(d);segEls.push([...d.children]);
+    if(i===1)fx.appendChild(Object.assign(document.createElement('span'),{className:'dp'}))}
+  fx.appendChild(Object.assign(document.createElement('small'),{textContent:'MHz'}));
+  const drawFreq=()=>freqSegs(freqk).forEach((m,i)=>
+    segEls[i].forEach((el,b)=>el.classList.toggle('on',!!(m>>b&1))));
+  if(typeof speechSynthesis!=='undefined'){VOICES=speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged=()=>VOICES=speechSynthesis.getVoices();}
+  const setF=f=>{freqk=clampF(f)};
+  function knob(el,scale,cb){let ang=0,last=null;
+    const angOf=e=>{const r=el.getBoundingClientRect();
+      return knobAngle(e.clientX,e.clientY,r.left+r.width/2,r.top+r.height/2)};
+    el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);last=angOf(e);e.preventDefault()});
+    el.addEventListener('pointermove',e=>{if(last===null)return;const a=angOf(e);
+      const d=knobDelta(last,a);last=a;ang+=d;
+      el.style.setProperty('--a',ang+'deg');cb(d*scale)});
+    const up=()=>last=null;el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)}
+  knob($('dial'),6,d=>setF(freqk+d));           // ~2.2 MHz per turn
+  knob($('fine'),.03,d=>setF(freqk+d));         // ~11 kHz per turn
+  knob($('vol'),.003,d=>{vol=Math.min(1,Math.max(0,vol+d));
+    if(pwrOn)radio.setVol(vol)});
+  $('panel').addEventListener('wheel',e=>{e.preventDefault();
+    setF(freqk+(e.deltaY>0?-1:1)*(e.shiftKey?.1:5))},{passive:false});
+  addEventListener('keydown',e=>{const s=e.shiftKey?.1:1;
+    if(e.key==='ArrowRight')setF(freqk+s);else if(e.key==='ArrowLeft')setF(freqk-s);
+    else if(e.key==='PageUp')setF(freqk+100);else if(e.key==='PageDown')setF(freqk-100)});
+  $('pwr').addEventListener('click',()=>{$('pwr').classList.toggle('on');
+    pwrOn=$('pwr').classList.contains('on');radio.power(pwrOn,vol)});
+  $('bfo').addEventListener('click',()=>{bfoOn=!bfoOn;$('bfo').classList.toggle('on',bfoOn)});
+  const logs=[];
+  $('logbtn').addEventListener('click',()=>{const now=new Date(),st=nearest(band,freqk);
+    const aud=st?strength(st,now,radio.now())*selectivity(st.f-freqk):0;
+    logs.push(makeEntry(freqk,now,claimId(st,aud),$('note').value));
+    $('note').value='';
+    $('logtbl').innerHTML=tableHtml(logs)});
+  $('expbtn').addEventListener('click',()=>{if(!logs.length)return;
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([exportText(logs,seed)],{type:'text/plain'}));
+    a.download='skywave-log.txt';a.click();URL.revokeObjectURL(a.href)});
+  /* -------- main loop: pure tune.js outputs pushed into the graph -------- */
+  function frame(){requestAnimationFrame(frame);
+    const now=new Date();
+    $('clock').textContent=zulu(now);
+    drawFreq();
+    let s=0,sel=0,st=null,hint='';
+    if(pwrOn){
+      st=nearest(band,freqk);
+      if(st!==radio.station())radio.retune(st);
+      if(st){s=strength(st,now,radio.now());sel=selectivity(st.f-freqk)}
+      const aud=s*sel;curAud=aud;
+      const beat=beatHz(st?st.f-freqk:0);
+      radio.apply({beat,het:hetLevel(s,beat),noise:noiseFloor(aud),
+        level:st?audioLevel(st.ty,aud,bfoOn):0});
+      if(st&&(st.ty==='m'||st.ty==='r')&&!bfoOn&&aud>.1)
+        hint='carrier detected — no audio? switch in the BFO.';
+      else hint='tune slowly. the good ones keep schedules (UTC).';
+    }else{curAud=0;hint=radio.now()?'':'flip POWER to wake the receiver — then tune.'}
+    meterV=meterStep(meterV,Math.min(1,s*(.3+.7*sel)));          // ballistic needle
+    $('needle').style.transform='rotate('+needleDeg(meterV)+'deg)';
+    $('hint').textContent=hint}
+  frame()}
+boot();
+</script></body></html>
