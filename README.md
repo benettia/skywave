@@ -54,7 +54,8 @@ frequencies carry better at night, high frequencies by day.
    splitting, band generation, propagation, morse codec and timing, RTTY baudot
    framing round-trips, numbers-station scripts, UTC schedule windows, receiver
    math (selectivity, heterodyne beat, BFO gate, dial clamp), panel math
-   (7-seg truth table, readout layout, meter ballistics, knob wrap), boundary cases.
+   (7-seg truth table, readout layout, meter ballistics, knob wrap), logbook
+   (id honesty rule, zulu clock, DX-log text, seed-in-hash), boundary cases.
 2. `npx playwright test smoke` — headless boot: page loads, zero console
    errors, POWER exists, flipping it creates an AudioContext.
 3. runtime-deps check — `package.json` dependencies must stay empty. Dev deps only.
@@ -106,3 +107,11 @@ Listen checklist:
   Land on a strong carrier: the needle kicks up fast; tune off: it falls back
   slow, visibly slower than it rose. Panel stays matte black, one amber glow —
   the only light is the readout, LEDs, needle, and knob markers.
+- **M5** — the paper trail. Park on a strong station, type a note, LOG: the
+  top row of the table names its mode — "morse beacon", "rtty/data",
+  "numbers stn + jammer" when the buzz is parked on top. LOG dead air or a
+  barely-there carrier: "unid" — the log never claims what you couldn't
+  honestly hear. Newest entry on top. EXPORT downloads a plain-text DX log:
+  first line `SKYWAVE SW-1 DX LOG — NET <seed>`, then one line per entry with
+  UTC date, zulu time, MHz, id, your note. Reload the same URL: same band —
+  the station you logged is still on the logged frequency.
